@@ -113,7 +113,6 @@ public class CustomAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
             postItemHolder.textViewContent.setText(postItem.getContent());
 
         logger.info("onBindViewHolder position: " + position);
-        logger.info("onBindViewHolder postItemHolder.getAdapterPosition(): " + postItemHolder.getAdapterPosition());
         if (postItemHolder.getAdapterPosition() % ITEMS_PER_AD == 0){
 //            postItemHolder.adCardView.setVisibility(View.VISIBLE);
             postItemHolder.adView.setVisibility(View.VISIBLE);

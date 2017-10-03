@@ -10,23 +10,20 @@ import java.util.Map;
  * Created by ziwon on 2017. 10. 2..
  */
 
-public class Post {
+public class PostComment {
 
-    private String fbdbid;
-    private String userid;
-    private String title;
+    private String uid;
     private String content;
     private double timestamp;
 
-    public Post() {
+    public PostComment() {
         // Default constructor required for calls to DataSnapshot.getValue(Post.class)
     }
 
-    public Post(String fbdbid, String userId, String title, String content) {
-        this.fbdbid = fbdbid;
-        this.userid = userId;
-        this.title = title;
+    public PostComment(String uid, String content, Double timestamp) {
+        this.uid = uid;
         this.content = content;
+        this.timestamp = timestamp;
     }
 
     public double getTimestamp(){
@@ -36,28 +33,18 @@ public class Post {
     @Exclude
     public Map<String, Object> toMap() {
         HashMap<String, Object> result = new HashMap<>();
-        result.put("fbdbid", fbdbid);
-        result.put("userid", userid);
-        result.put("title", title);
+        result.put("uid", uid);
         result.put("content", content);
         result.put("timestamp", ServerValue.TIMESTAMP);
         return result;
     }
 
-    public String getUserid() {
-        return userid;
+    public String getUid() {
+        return uid;
     }
 
-    public void setUserid(String userid) {
-        this.userid = userid;
-    }
-
-    public String getTitle() {
-        return title;
-    }
-
-    public void setTitle(String title) {
-        this.title = title;
+    public void setUid(String uid) {
+        this.uid = uid;
     }
 
     public String getContent() {
@@ -70,13 +57,5 @@ public class Post {
 
     public void setTimestamp(double timestamp) {
         this.timestamp = timestamp;
-    }
-
-    public String getFbdbid() {
-        return fbdbid;
-    }
-
-    public void setFbdbid(String fbdbid) {
-        this.fbdbid = fbdbid;
     }
 }

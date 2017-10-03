@@ -52,7 +52,7 @@ public class FirebaseHelper {
 //                            refreshItems();
 //                        }
 //                    });
-//                    Log.d(TAG, "onAuthStateChanged:signed_in:" + user.getUid());
+//                    Log.d(TAG, "onAuthStateChanged:signed_in:" + user.getUserid());
 //                } else {
 //                    // User is signed out
 //                    Log.d(TAG, "onAuthStateChanged:signed_out");

@@ -1,4 +1,4 @@
-package ustchangdong.com.mush;
+package ustchangdong.com.mush.Adapters;
 
 import android.content.Context;
 import android.support.v7.widget.RecyclerView;
@@ -9,6 +9,11 @@ import android.widget.TextView;
 
 import java.util.ArrayList;
 import java.util.logging.Logger;
+
+import ustchangdong.com.mush.DataClasses.PostComment;
+import ustchangdong.com.mush.R;
+import ustchangdong.com.mush.Utils.RecyclerViewClickListener;
+import ustchangdong.com.mush.Utils.Utils;
 
 /**
  * Created by ziwon on 2017. 9. 27..

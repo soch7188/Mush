@@ -1,9 +1,8 @@
-package ustchangdong.com.mush;
+package ustchangdong.com.mush.Fragments;
 
 import android.app.Activity;
 import android.content.Context;
 import android.graphics.Point;
-import android.net.Uri;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v4.widget.SwipeRefreshLayout;
@@ -32,19 +31,30 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Logger;
 
+import ustchangdong.com.mush.Adapters.CommentAdapter;
+import ustchangdong.com.mush.Adapters.CustomAdapter;
+import ustchangdong.com.mush.Utils.EndlessRecyclerViewScrollListener;
+import ustchangdong.com.mush.DataClasses.Post;
+import ustchangdong.com.mush.DataClasses.PostComment;
+import ustchangdong.com.mush.R;
+import ustchangdong.com.mush.Utils.RecyclerViewClickListener;
+
 import static android.widget.PopupWindow.INPUT_METHOD_NEEDED;
 
-public class LoveFragment extends Fragment implements RecyclerViewClickListener{
-    private static final String TAG = "LoveFragment";
-    private Logger logger = Logger.getLogger("LoveFragment");
+public class MarketFragment extends Fragment implements RecyclerViewClickListener {
+    private static final String TAG = "MarketFragment";
+    private Logger logger = Logger.getLogger("MarketFragment");
+
+    private static String POSTING_TYPE_NAME = "market_posts";
+
     Context mContext;
 
-    private static CommentAdapter mAdapterComment;
+    private CommentAdapter mAdapterComment;
     private LinearLayoutManager layoutManagerComment;
     private RecyclerView mRecyclerViewComment;
     private EndlessRecyclerViewScrollListener scrollListenerComment;
 
-    private static CustomAdapter mAdapter;
+    private CustomAdapter mAdapter;
     private LinearLayoutManager layoutManager;
     private RecyclerView mRecyclerView;
     private SwipeRefreshLayout mSwipeRefreshLayout;
@@ -56,17 +66,30 @@ public class LoveFragment extends Fragment implements RecyclerViewClickListener{
 
     private ValueEventListener commentValueEventListener;
 
-    private static ArrayList<Object> mRecyclerViewItems = new ArrayList<>();
-    private static ArrayList<PostComment> mRecyclerViewItemsComment = new ArrayList<>();
-
-    private OnFragmentInteractionListener mListener;
+    private ArrayList<Object> mRecyclerViewItems = new ArrayList<>();
+    private ArrayList<PostComment> mRecyclerViewItemsComment = new ArrayList<>();
 
     private PopupWindow popWindow;
     private View rootView;
 
-    public LoveFragment() {
-        // Required empty public constructor
+    public MarketFragment(){
+
     }
+
+    /**
+     * Use this factory method to create a new instance of
+     * this fragment using the provided parameters.
+     *
+     * @return A new instance of fragment all.
+     */
+//    // TODO: Rename and change types and number of parameters
+//    public MarketFragment newInstance(String fragType) {
+//        MarketFragment fragment = new MarketFragment();
+//        Bundle args = new Bundle();
+//        fragment.setArguments(args);
+//        POSTING_TYPE_NAME = fragType;
+//        return fragment;
+//    }
 
     @Override
     public void onViewClicked(View view, int position) {
@@ -85,16 +108,16 @@ public class LoveFragment extends Fragment implements RecyclerViewClickListener{
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        rootView = inflater.inflate(R.layout.fragment_love, container, false);
+        rootView = inflater.inflate(R.layout.fragment_postings, container, false);
 
-        mSwipeRefreshLayout = rootView.findViewById(R.id.swipeRefreshLayout_love);
-        mRecyclerView = rootView.findViewById(R.id.rv_love);
+        mSwipeRefreshLayout = rootView.findViewById(R.id.swipeRefreshLayout_posting);
+        mRecyclerView = rootView.findViewById(R.id.rv_posting);
         mRecyclerView.setHasFixedSize(true);
         layoutManager = new LinearLayoutManager(rootView.getContext());
         mRecyclerView.setLayoutManager(layoutManager);
         mRecyclerView.setItemAnimator(new DefaultItemAnimator());
 
-        postRef = FirebaseDatabase.getInstance().getReference("love");
+        postRef = FirebaseDatabase.getInstance().getReference(POSTING_TYPE_NAME);
         commentRef = FirebaseDatabase.getInstance().getReference("comment");
         setRecyclerViewAdapter();
         mSwipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
@@ -108,7 +131,7 @@ public class LoveFragment extends Fragment implements RecyclerViewClickListener{
 
     public void onShowPopup(View v, final Post post){
         LayoutInflater layoutInflater = (LayoutInflater)v.getContext().getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-        postCommentRef = commentRef.child("love").child(post.getFbdbid());
+        postCommentRef = commentRef.child(POSTING_TYPE_NAME).child(post.getFbdbid());
 
         final View inflatedView = layoutInflater.inflate(R.layout.fb_popup_layout, null,false);
         mRecyclerViewComment = inflatedView.findViewById(R.id.rv_comment);
@@ -432,33 +455,10 @@ public class LoveFragment extends Fragment implements RecyclerViewClickListener{
     public void onAttach(Context context) {
         super.onAttach(context);
         this.mContext = context;
-
-        if (context instanceof OnFragmentInteractionListener) {
-            mListener = (OnFragmentInteractionListener) context;
-        } else {
-            throw new RuntimeException(context.toString()
-                    + " must implement OnFragmentInteractionListener");
-        }
     }
 
     @Override
     public void onDetach() {
         super.onDetach();
-        mListener = null;
-    }
-
-    /**
-     * This interface must be implemented by activities that contain this
-     * fragment to allow an interaction in this fragment to be communicated
-     * to the activity and potentially other fragments contained in that
-     * activity.
-     * <p>
-     * See the Android Training lesson <a href=
-     * "http://developer.android.com/training/basics/fragments/communicating.html"
-     * >Communicating with Other Fragments</a> for more information.
-     */
-    public interface OnFragmentInteractionListener {
-        // TODO: Update argument type and name
-        void onFragmentInteraction(Uri uri);
     }
 }

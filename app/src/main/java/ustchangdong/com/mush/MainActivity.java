@@ -18,7 +18,6 @@ import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.EditText;
-import android.widget.RadioGroup;
 import android.widget.Toast;
 
 import com.google.android.gms.ads.MobileAds;
@@ -29,14 +28,24 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.messaging.FirebaseMessaging;
 
 import java.util.HashMap;
 import java.util.Map;
 
-public class MainActivity extends AppCompatActivity implements LoveFragment.OnFragmentInteractionListener,
-        StudyFragment.OnFragmentInteractionListener, AllFragment.OnFragmentInteractionListener {
+import ustchangdong.com.mush.DataClasses.Post;
+import ustchangdong.com.mush.Fragments.AllFragment;
+import ustchangdong.com.mush.Fragments.MarketFragment;
+import ustchangdong.com.mush.Fragments.PostingFragment;
+import ustchangdong.com.mush.Fragments.SettingsFragment;
+
+public class MainActivity extends AppCompatActivity implements AllFragment.OnFragmentInteractionListener {
     private static final String TAG = "MainActivity";
     final Context context = this;
+
+    private final static String POSTING_POSTS_TYPE_NAME = "posting_posts";
+    private final static String POSTING_MARKET_TYPE_NAME = "market_posts";
+
 
     // A Native Express ad is placed in every nth position in the RecyclerView.
     public static final int ITEMS_PER_AD = 6;
@@ -47,21 +56,21 @@ public class MainActivity extends AppCompatActivity implements LoveFragment.OnFr
     // The Native Express ad unit ID.
     public static final String AD_UNIT_ID = "ca-app-pub-6525167222338120/6384998774";
 
-    private static LoveFragment loveFrag;
-    private static StudyFragment studyFrag;
+
+    private PostingFragment postingFragment;
+    private MarketFragment marketFragment;
+    private SettingsFragment settingsFragment;
     private static AllFragment allFrag;
 
     private FirebaseAuth mAuth;
     private FirebaseUser currentUser;
     private DatabaseReference mDatabase;
-    private DatabaseReference postLoveRef;
 
     @Override
     public void onStart() {
         super.onStart();
         // Check if user is signed in (non-null) and update UI accordingly.
         mDatabase = FirebaseDatabase.getInstance().getReference();
-        postLoveRef = FirebaseDatabase.getInstance().getReference("love");
     }
 
 
@@ -73,18 +82,23 @@ public class MainActivity extends AppCompatActivity implements LoveFragment.OnFr
             FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
 
             switch (item.getItemId()) {
-                case R.id.navigation_love:
-                    transaction.replace(R.id.fragment_container_main, loveFrag);
+                case R.id.navigation_posting:
+                    transaction.replace(R.id.fragment_container_main, postingFragment);
                     transaction.commit();
                     getSupportFragmentManager().executePendingTransactions();
                     return true;
-                case R.id.navigation_study:
-                    transaction.replace(R.id.fragment_container_main, studyFrag);
-                    transaction.commit();
-                    getSupportFragmentManager().executePendingTransactions();
-                    return true;
-                case R.id.navigation_all:
-                    transaction.replace(R.id.fragment_container_main, allFrag);
+//                case R.id.navigation_buyandsell:
+//                    transaction.replace(R.id.fragment_container_main, marketFragment);
+//                    transaction.commit();
+//                    getSupportFragmentManager().executePendingTransactions();
+//                    return true;
+//                case R.id.navigation_all:
+//                    transaction.replace(R.id.fragment_container_main, allFrag);
+//                    transaction.commit();
+//                    getSupportFragmentManager().executePendingTransactions();
+//                    return true;
+                case R.id.navigation_settings:
+                    transaction.replace(R.id.fragment_container_main, settingsFragment);
                     transaction.commit();
                     getSupportFragmentManager().executePendingTransactions();
                     return true;
@@ -102,6 +116,9 @@ public class MainActivity extends AppCompatActivity implements LoveFragment.OnFr
         setFloatingActionButton();
         MobileAds.initialize(this, AD_UNIT_ID);
 
+        // Subscribe to FCM Topic
+        FirebaseMessaging.getInstance().subscribeToTopic("general");
+
         BottomNavigationView navigation = (BottomNavigationView) findViewById(R.id.navigation);
         navigation.setOnNavigationItemSelectedListener(mOnNavigationItemSelectedListener);
 
@@ -113,18 +130,13 @@ public class MainActivity extends AppCompatActivity implements LoveFragment.OnFr
             populateFragments(savedInstanceState);
         }
 
-//        if (!(currentUser == null)) {
-//            populateFragments(savedInstanceState);
-//        } else {
-//            Snackbar.make(findViewById(R.id.placeSnackBar), "There was an error with authentication. Please restart", Snackbar.LENGTH_INDEFINITE).show();
-//        }
-
     }
 
     private void populateFragments(Bundle savedInstanceState){
-        loveFrag = new LoveFragment();
-        studyFrag = new StudyFragment();
+        postingFragment = new PostingFragment();
+        marketFragment = new MarketFragment();
         allFrag = new AllFragment();
+        settingsFragment = new SettingsFragment();
 
         // Check that the activity is using the layout version with
         // the fragment_container FrameLayout
@@ -138,7 +150,7 @@ public class MainActivity extends AppCompatActivity implements LoveFragment.OnFr
             }
 
             // Add the fragment to the 'fragment_container' FrameLayout
-            getSupportFragmentManager().beginTransaction().add(R.id.fragment_container_main, loveFrag).commit();
+            getSupportFragmentManager().beginTransaction().add(R.id.fragment_container_main, postingFragment).commit();
         }
     }
 
@@ -155,9 +167,9 @@ public class MainActivity extends AppCompatActivity implements LoveFragment.OnFr
                 // set prompts.xml to alertdialog builder
                 alertDialogBuilder.setView(promptsView);
 
-                final EditText editTextTitle = promptsView.findViewById(R.id.editTextTitle);
+//                final EditText editTextTitle = promptsView.findViewById(R.id.editTextTitle);
                 final EditText editTextContent = promptsView.findViewById(R.id.editTextContent);
-                final RadioGroup radioGroupCategory = promptsView.findViewById(R.id.rg_category);
+//                final RadioGroup radioGroupCategory = promptsView.findViewById(R.id.rg_category);
 
                 try {
                     alertDialogBuilder
@@ -165,10 +177,13 @@ public class MainActivity extends AppCompatActivity implements LoveFragment.OnFr
                             .setPositiveButton("OK",
                                     new DialogInterface.OnClickListener() {
                                         public void onClick(DialogInterface dialog, int id) {
-                                            String title = editTextTitle.getText().toString();
+//                                            String title = editTextTitle.getText().toString();
                                             String content = editTextContent.getText().toString();
-                                            writeNewPost(mAuth.getCurrentUser().getUid(), title, content, radioGroupCategory.getCheckedRadioButtonId());
-                                            Snackbar.make(findViewById(R.id.placeSnackBar), "Post Successfully Added", Snackbar.LENGTH_LONG).setAction("Action", null).show();
+                                            if (!content.isEmpty()){
+//                                                writeNewPost(mAuth.getCurrentUser().getUid(), title, content, radioGroupCategory.getCheckedRadioButtonId());
+                                                writeNewPost(mAuth.getCurrentUser().getUid(), null, content, -1);
+                                                Snackbar.make(findViewById(R.id.placeSnackBar), "Post Successfully Added", Snackbar.LENGTH_LONG).setAction("Action", null).show();
+                                            }
                                         }
                                     })
                             .setNegativeButton("Cancel",
@@ -196,17 +211,21 @@ public class MainActivity extends AppCompatActivity implements LoveFragment.OnFr
         Map<String, Object> childUpdates = new HashMap<>();
 
         switch(radioGroupCategory) {
-            case R.id.rb_love:
-                childUpdates.put("/love/" + key, postValues);
-                childUpdates.put("/user-love/" + userId + "/" + key, postValues);
-                break;
-            case R.id.rb_study:
-                childUpdates.put("/study/" + key, postValues);
-                childUpdates.put("/user-study/" + userId + "/" + key, postValues);
-                break;
-            case R.id.rb_all:
-                childUpdates.put("/all/" + key, postValues);
-                childUpdates.put("/user-all/" + userId + "/" + key, postValues);
+//            case R.id.rb_posting:
+//                childUpdates.put("/" + POSTING_POSTS_TYPE_NAME + "/" + key, postValues);
+//                childUpdates.put("/user-posts/" + userId + "/" + key, postValues);
+//                break;
+//            case R.id.rb_market:
+//                childUpdates.put("/" + POSTING_MARKET_TYPE_NAME + "/" + key, postValues);
+//                childUpdates.put("/user-market/" + userId + "/" + key, postValues);
+//                break;
+//            case R.id.rb_all:
+//                childUpdates.put("/all/" + key, postValues);
+//                childUpdates.put("/user-all/" + userId + "/" + key, postValues);
+//                break;
+            default:
+                childUpdates.put("/" + POSTING_POSTS_TYPE_NAME + "/" + key, postValues);
+                childUpdates.put("/user-posts/" + userId + "/" + key, postValues);
                 break;
         }
 

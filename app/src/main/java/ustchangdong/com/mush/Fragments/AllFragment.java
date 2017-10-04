@@ -1,4 +1,4 @@
-package ustchangdong.com.mush;
+package ustchangdong.com.mush.Fragments;
 
 import android.app.Activity;
 import android.content.Context;
@@ -32,14 +32,27 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Logger;
 
+import ustchangdong.com.mush.Adapters.CommentAdapter;
+import ustchangdong.com.mush.Adapters.CustomAdapter;
+import ustchangdong.com.mush.Utils.EndlessRecyclerViewScrollListener;
+import ustchangdong.com.mush.DataClasses.Post;
+import ustchangdong.com.mush.DataClasses.PostComment;
+import ustchangdong.com.mush.R;
+import ustchangdong.com.mush.Utils.RecyclerViewClickListener;
+
 import static android.widget.PopupWindow.INPUT_METHOD_NEEDED;
 
 /**
  * A simple {@link Fragment} subclass.
+ * Activities that contain this fragment must implement the
+ * {@link AllFragment.OnFragmentInteractionListener} interface
+ * to handle interaction events.
+ * Use the {@link AllFragment#newInstance} factory method to
+ * create an instance of this fragment.
  */
-public class StudyFragment extends Fragment implements RecyclerViewClickListener {
-    private static final String TAG = "StudyFragment";
-    private Logger logger = Logger.getLogger("StudyFragment");
+public class AllFragment extends Fragment implements RecyclerViewClickListener {
+    private static final String TAG = "AllFragment";
+    private Logger logger = Logger.getLogger("AllFragment");
     Context mContext;
 
     private static CommentAdapter mAdapterComment;
@@ -67,7 +80,7 @@ public class StudyFragment extends Fragment implements RecyclerViewClickListener
     private PopupWindow popWindow;
     private View rootView;
 
-    public StudyFragment() {
+    public AllFragment() {
         // Required empty public constructor
     }
 
@@ -81,26 +94,44 @@ public class StudyFragment extends Fragment implements RecyclerViewClickListener
         onShowPopup(rootView, (Post) mRecyclerViewItems.get(position));
     }
 
+    /**
+     * Use this factory method to create a new instance of
+     * this fragment using the provided parameters.
+     *
+     * @param param1 Parameter 1.
+     * @param param2 Parameter 2.
+     * @return A new instance of fragment all.
+     */
+    // TODO: Rename and change types and number of parameters
+    public static AllFragment newInstance(String param1, String param2) {
+        AllFragment fragment = new AllFragment();
+        Bundle args = new Bundle();
+        fragment.setArguments(args);
+        return fragment;
+    }
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        if (getArguments() != null) {
+        }
     }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
 
-        rootView = inflater.inflate(R.layout.fragment_study, container, false);
+        rootView = inflater.inflate(R.layout.fragment_all, container, false);
 
-        mSwipeRefreshLayout = (SwipeRefreshLayout) rootView.findViewById(R.id.swipeRefreshLayout_study);
-        mRecyclerView = (RecyclerView) rootView.findViewById(R.id.rv_study);
+        mSwipeRefreshLayout = (SwipeRefreshLayout) rootView.findViewById(R.id.swipeRefreshLayout_all);
+        mRecyclerView = (RecyclerView) rootView.findViewById(R.id.rv_all);
         mRecyclerView.setHasFixedSize(true);
         layoutManager = new LinearLayoutManager(rootView.getContext());
         mRecyclerView.setLayoutManager(layoutManager);
         mRecyclerView.setItemAnimator(new DefaultItemAnimator());
 
-        postRef = FirebaseDatabase.getInstance().getReference("study");
+        postRef = FirebaseDatabase.getInstance().getReference("all");
         commentRef = FirebaseDatabase.getInstance().getReference("comment");
-        setRecyclerViewAdapter();
+        setRecyclerViewAdapter(rootView);
         mSwipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
             @Override
             public void onRefresh() {
@@ -112,7 +143,7 @@ public class StudyFragment extends Fragment implements RecyclerViewClickListener
 
     public void onShowPopup(View v, final Post post){
         LayoutInflater layoutInflater = (LayoutInflater)v.getContext().getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-        postCommentRef = commentRef.child("study").child(post.getFbdbid());
+        postCommentRef = commentRef.child("all").child(post.getFbdbid());
 
         final View inflatedView = layoutInflater.inflate(R.layout.fb_popup_layout, null,false);
         mRecyclerViewComment = inflatedView.findViewById(R.id.rv_comment);
@@ -165,25 +196,18 @@ public class StudyFragment extends Fragment implements RecyclerViewClickListener
             }
         });
 
-        // get device size
         Display display = ((Activity)v.getContext()).getWindowManager().getDefaultDisplay();
         final Point size = new Point();
         display.getSize(size);
         int statusBarHeight = (int) (24 * v.getContext().getResources().getDisplayMetrics().density);
         final int mDeviceHeight = size.y - statusBarHeight;
 
-        // fill the data to the list items
         setRecyclerViewAdapterComment();
 
-        // set height depends on the device size
         popWindow = new PopupWindow(inflatedView, size.x, mDeviceHeight, true );
-        // set a background drawable with rounders corners
         popWindow.setBackgroundDrawable(getResources().getDrawable(R.drawable.fb_popup_bg));
-        // make it focusable to show the keyboard to enter in `EditText`
         popWindow.setFocusable(true);
-        // make it outside touchable to dismiss the popup window
         popWindow.setOutsideTouchable(true);
-
         popWindow.setHeight(WindowManager.LayoutParams.WRAP_CONTENT);
         popWindow.setInputMethodMode(INPUT_METHOD_NEEDED);
 
@@ -246,7 +270,7 @@ public class StudyFragment extends Fragment implements RecyclerViewClickListener
         mRecyclerViewComment.setAdapter(mAdapterComment);
     }
 
-    private void setRecyclerViewAdapter(){
+    private void setRecyclerViewAdapter(final View rootView){
         scrollListener = new EndlessRecyclerViewScrollListener(layoutManager) {
             @Override
             public void onLoadMore(int page, int totalItemsCount, RecyclerView view) {
@@ -259,15 +283,7 @@ public class StudyFragment extends Fragment implements RecyclerViewClickListener
     }
 
 
-    // Append the next page of mRecyclerViewItems into the adapter
-    // This method probably sends out a network request and appends new mRecyclerViewItems items to your adapter.
     public void loadNextDataFromApi(int offset, final View rootView) {
-        // Send an API request to retrieve appropriate paginated mRecyclerViewItems
-        //  --> Send the request including an offset value (i.e `page`) as a query parameter.
-        //  --> Deserialize and construct new model objects from the API response
-        //  --> Append the new mRecyclerViewItems objects to the existing set of items inside the array of items
-        //  --> Notify the adapter of the new items made with `notifyItemRangeInserted()`
-        logger.info("LoadNext Called at offset: " + offset);
         Post lastPostItem;
         Double lastTimeStamp = 0.0;
         lastPostItem = (Post) mRecyclerViewItems.get(mRecyclerViewItems.size() - 1);
@@ -275,20 +291,17 @@ public class StudyFragment extends Fragment implements RecyclerViewClickListener
         postRef.orderByChild("timestamp").endAt(lastTimeStamp-1).limitToLast(7).addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
-                logger.info("Before Fetch dataset.size(): " + mRecyclerViewItems.size());
                 fetchData(dataSnapshot);
                 mAdapter.notifyDataSetChanged();
             }
 
             @Override
             public void onCancelled(DatabaseError databaseError) {
-
             }
         });
     }
 
     public void loadNextDataFromApiComment(int offset, final View rootView) {
-        logger.info("LoadNext Called at offset: " + offset);
         PostComment lastPostItem;
         Double lastTimeStamp = 0.0;
         lastPostItem = (PostComment) mRecyclerViewItemsComment.get(mRecyclerViewItemsComment.size() - 1);
@@ -296,24 +309,19 @@ public class StudyFragment extends Fragment implements RecyclerViewClickListener
         postCommentRef.orderByChild("timestamp").endAt(lastTimeStamp-1).limitToFirst(7).addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
-                logger.info("Before Fetch dataset.size(): " + mRecyclerViewItemsComment.size());
-
                 ArrayList<PostComment> temp = new ArrayList<>();
                 for (DataSnapshot ds : dataSnapshot.getChildren())
                 {
                     PostComment pc = ds.getValue(PostComment.class);
                     temp.add(pc);
                 }
-
-//                Collections.reverse(temp);
+                Collections.reverse(temp);
                 mRecyclerViewItemsComment.addAll(temp);
-
                 mAdapterComment.notifyDataSetChanged();
             }
 
             @Override
             public void onCancelled(DatabaseError databaseError) {
-
             }
         });
     }
@@ -372,20 +380,16 @@ public class StudyFragment extends Fragment implements RecyclerViewClickListener
 
     private void fetchData(DataSnapshot dataSnapshot) {
         ArrayList<Post> temp = new ArrayList<>();
-        for (DataSnapshot ds : dataSnapshot.getChildren()) {
-            logger.info("ds.getChildrenCount(): " + ds.getChildrenCount());
-            logger.info("ds.exists(): " + ds.exists());
-            if (ds.getChildrenCount() > 0) {
-                Post bk = ds.getValue(Post.class);
-                temp.add(bk);
-            }
+        for (DataSnapshot ds : dataSnapshot.getChildren())
+        {
+            Post bk = ds.getValue(Post.class);
+            temp.add(bk);
         }
         Collections.reverse(temp);
         mRecyclerViewItems.addAll(temp);
     }
 
     void refreshItems() {
-        // Load items
         ArrayList<Object> temp = new ArrayList<>();
         temp.addAll(mRecyclerViewItems);
         try {
@@ -396,13 +400,10 @@ public class StudyFragment extends Fragment implements RecyclerViewClickListener
             e.printStackTrace();
             mRecyclerViewItems.addAll(temp);
         }
-        // Load complete
         onItemsLoadComplete();
     }
 
     void onItemsLoadComplete() {
-        // Update the adapter and notify mRecyclerViewItems set changed
-        // Stop refresh animation
         mSwipeRefreshLayout.setRefreshing(false);
     }
 

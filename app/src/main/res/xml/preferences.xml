@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <PreferenceCategory
+        android:title="Notifications">
+
+<!--
+        <ListPreference
+            android:title="@string/notification_new_post_title"
+            android:summary="@string/notification_new_post_summary"
+            android:key="@string/notification_new_post_key"
+            android:defaultValue="300000"
+            android:entries="@array/logoutInterval"
+            android:entryValues="@array/logoutIntervalValues" />
+            -->
+        <SwitchPreference
+            android:key="@string/notificationOnOffKey"
+            android:title="@string/notificationOnOffTitle"
+            android:defaultValue="on"/>
+        <!--
+        <SwitchPreference
+            android:key="@string/notification_new_post_key"
+            android:title="@string/notification_new_post_title"
+            android:defaultValue="off"/>
+            -->
+
+    </PreferenceCategory>
+</PreferenceScreen>

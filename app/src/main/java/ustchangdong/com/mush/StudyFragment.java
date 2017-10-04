@@ -36,11 +36,6 @@ import static android.widget.PopupWindow.INPUT_METHOD_NEEDED;
 
 /**
  * A simple {@link Fragment} subclass.
- * Activities that contain this fragment must implement the
- * {@link StudyFragment.OnFragmentInteractionListener} interface
- * to handle interaction events.
- * Use the {@link StudyFragment#newInstance} factory method to
- * create an instance of this fragment.
  */
 public class StudyFragment extends Fragment implements RecyclerViewClickListener {
     private static final String TAG = "StudyFragment";
@@ -105,7 +100,7 @@ public class StudyFragment extends Fragment implements RecyclerViewClickListener
 
         postRef = FirebaseDatabase.getInstance().getReference("study");
         commentRef = FirebaseDatabase.getInstance().getReference("comment");
-        setRecyclerViewAdapter(rootView);
+        setRecyclerViewAdapter();
         mSwipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
             @Override
             public void onRefresh() {
@@ -117,7 +112,7 @@ public class StudyFragment extends Fragment implements RecyclerViewClickListener
 
     public void onShowPopup(View v, final Post post){
         LayoutInflater layoutInflater = (LayoutInflater)v.getContext().getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-        postCommentRef = commentRef.child("love").child(post.getFbdbid());
+        postCommentRef = commentRef.child("study").child(post.getFbdbid());
 
         final View inflatedView = layoutInflater.inflate(R.layout.fb_popup_layout, null,false);
         mRecyclerViewComment = inflatedView.findViewById(R.id.rv_comment);
@@ -126,21 +121,47 @@ public class StudyFragment extends Fragment implements RecyclerViewClickListener
         mRecyclerViewComment.setLayoutManager(layoutManagerComment);
         mRecyclerViewComment.setItemAnimator(new DefaultItemAnimator());
 
-        final EditText commentContent = (EditText) inflatedView.findViewById(R.id.commentContent);
-        Button commentSendButton = (Button) inflatedView.findViewById(R.id.commentSendButton);
-        commentSendButton.setOnClickListener(new View.OnClickListener() {
+        final EditText commentCnt = inflatedView.findViewById(R.id.commentContent);
+        Button commentSendBtn = inflatedView.findViewById(R.id.commentSendButton);
+
+        commentSendBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 // Create new comment at /comment/$postId/$commentId
                 String key = postCommentRef.push().getKey();
-                PostComment comment = new PostComment(post.getUserid(), commentContent.getText().toString(), post.getTimestamp());
+                PostComment comment = new PostComment(post.getUserid(), commentCnt.getText().toString(), post.getTimestamp());
                 Map<String, Object> commentValues = comment.toMap();
                 Map<String, Object> childUpdates = new HashMap<>();
                 childUpdates.put("/" + key, commentValues);
                 postCommentRef.updateChildren(childUpdates);
 
-                int origNumComment = Integer.parseInt(post.getComment());
-                postRef.child(post.getFbdbid()).child("comment").setValue(origNumComment + 1);
+                int cmtNum = 0;
+                PostComment lastPostItem;
+                Double lastTimeStamp = 0.0;
+                if (!mRecyclerViewItemsComment.isEmpty()){
+                    lastPostItem = (PostComment) mRecyclerViewItemsComment.get(mRecyclerViewItemsComment.size() - 1);
+                    lastTimeStamp = lastPostItem.getTimestamp();
+                }
+                ValueEventListener commentVel = new ValueEventListener() {
+                    @Override
+                    public void onDataChange(DataSnapshot dataSnapshot) {
+                        int cmtNum = 0;
+                        for (DataSnapshot ds : dataSnapshot.getChildren()) {
+                            cmtNum += 1;
+                        }
+                        String newNumComment = String.valueOf(cmtNum);
+                        Map<String, Object> childUpdate = new HashMap<>();
+                        childUpdate.put("comment", newNumComment);
+                        postRef.child(post.getFbdbid()).updateChildren(childUpdate);
+
+                    }
+                    @Override
+                    public void onCancelled(DatabaseError databaseError) {
+                    }
+                };
+                postCommentRef.addListenerForSingleValueEvent(commentVel);
+
+                mRecyclerViewComment.smoothScrollToPosition(mRecyclerViewItemsComment.size());
             }
         });
 
@@ -152,7 +173,7 @@ public class StudyFragment extends Fragment implements RecyclerViewClickListener
         final int mDeviceHeight = size.y - statusBarHeight;
 
         // fill the data to the list items
-        setRecyclerViewAdapterComment(mRecyclerViewComment);
+        setRecyclerViewAdapterComment();
 
         // set height depends on the device size
         popWindow = new PopupWindow(inflatedView, size.x, mDeviceHeight, true );
@@ -170,6 +191,7 @@ public class StudyFragment extends Fragment implements RecyclerViewClickListener
             @Override
             public void onDismiss() {
                 postCommentRef.removeEventListener(commentValueEventListener);
+                mRecyclerViewItemsComment.clear();
             }
         });
 
@@ -177,7 +199,7 @@ public class StudyFragment extends Fragment implements RecyclerViewClickListener
         popWindow.showAtLocation(v, Gravity.BOTTOM, 0, 0);
     }
 
-    void setRecyclerViewAdapterComment(RecyclerView recyclerView){
+    void setRecyclerViewAdapterComment(){
         // Retain an instance so that you can call `resetState()` for fresh searches
         scrollListenerComment = new EndlessRecyclerViewScrollListener(layoutManagerComment) {
             @Override
@@ -206,7 +228,7 @@ public class StudyFragment extends Fragment implements RecyclerViewClickListener
                     temp.add(pc);
                 }
 
-                Collections.reverse(temp);
+//                Collections.reverse(temp);    // Comments should show up on bottom.
                 mRecyclerViewItemsComment.addAll(temp);
 
                 if (mAdapterComment != null){
@@ -224,7 +246,7 @@ public class StudyFragment extends Fragment implements RecyclerViewClickListener
         mRecyclerViewComment.setAdapter(mAdapterComment);
     }
 
-    private void setRecyclerViewAdapter(final View rootView){
+    private void setRecyclerViewAdapter(){
         scrollListener = new EndlessRecyclerViewScrollListener(layoutManager) {
             @Override
             public void onLoadMore(int page, int totalItemsCount, RecyclerView view) {
@@ -271,7 +293,7 @@ public class StudyFragment extends Fragment implements RecyclerViewClickListener
         Double lastTimeStamp = 0.0;
         lastPostItem = (PostComment) mRecyclerViewItemsComment.get(mRecyclerViewItemsComment.size() - 1);
         lastTimeStamp = lastPostItem.getTimestamp();
-        postCommentRef.orderByChild("timestamp").endAt(lastTimeStamp-1).limitToLast(7).addListenerForSingleValueEvent(new ValueEventListener() {
+        postCommentRef.orderByChild("timestamp").endAt(lastTimeStamp-1).limitToFirst(7).addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
                 logger.info("Before Fetch dataset.size(): " + mRecyclerViewItemsComment.size());
@@ -283,7 +305,7 @@ public class StudyFragment extends Fragment implements RecyclerViewClickListener
                     temp.add(pc);
                 }
 
-                Collections.reverse(temp);
+//                Collections.reverse(temp);
                 mRecyclerViewItemsComment.addAll(temp);
 
                 mAdapterComment.notifyDataSetChanged();
@@ -297,25 +319,23 @@ public class StudyFragment extends Fragment implements RecyclerViewClickListener
     }
 
     private ArrayList<Object> getData(){
-        logger.info("getData called.");
-        postRef.limitToLast(7).addValueEventListener(new ValueEventListener() {
+        ValueEventListener vel = new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
-                if (!mRecyclerViewItems.isEmpty()){
+                if (!mRecyclerViewItems.isEmpty()) {
                     mRecyclerViewItems.clear();
                 }
                 fetchData(dataSnapshot);
-                if (mAdapter != null){
+                if (mAdapter != null) {
                     mAdapter.notifyDataSetChanged();
                 }
                 scrollListener.resetState();
             }
-
             @Override
             public void onCancelled(DatabaseError databaseError) {
-
             }
-        });
+        };
+        postRef.limitToLast(7).addValueEventListener(vel);
         return mRecyclerViewItems;
     }
 
@@ -350,19 +370,18 @@ public class StudyFragment extends Fragment implements RecyclerViewClickListener
         return mRecyclerViewItemsComment;
     }
 
-    private void fetchData(DataSnapshot dataSnapshot)
-    {
-        logger.info("fetchData called.");
+    private void fetchData(DataSnapshot dataSnapshot) {
         ArrayList<Post> temp = new ArrayList<>();
-        for (DataSnapshot ds : dataSnapshot.getChildren())
-        {
-            Post bk = ds.getValue(Post.class);
-            temp.add(bk);
+        for (DataSnapshot ds : dataSnapshot.getChildren()) {
+            logger.info("ds.getChildrenCount(): " + ds.getChildrenCount());
+            logger.info("ds.exists(): " + ds.exists());
+            if (ds.getChildrenCount() > 0) {
+                Post bk = ds.getValue(Post.class);
+                temp.add(bk);
+            }
         }
         Collections.reverse(temp);
         mRecyclerViewItems.addAll(temp);
-        logger.info("After fetchData - mRecyclerViewItems.size(): " + mRecyclerViewItems.size());
-
     }
 
     void refreshItems() {

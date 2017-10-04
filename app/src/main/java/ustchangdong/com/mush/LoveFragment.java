@@ -26,14 +26,10 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashMap;
-import java.util.Locale;
 import java.util.Map;
-import java.util.TimeZone;
 import java.util.logging.Logger;
 
 import static android.widget.PopupWindow.INPUT_METHOD_NEEDED;
@@ -110,8 +106,6 @@ public class LoveFragment extends Fragment implements RecyclerViewClickListener{
         return rootView;
     }
 
-    int commentNumber = 0;
-
     public void onShowPopup(View v, final Post post){
         LayoutInflater layoutInflater = (LayoutInflater)v.getContext().getSystemService(Context.LAYOUT_INFLATER_SERVICE);
         postCommentRef = commentRef.child("love").child(post.getFbdbid());
@@ -164,16 +158,6 @@ public class LoveFragment extends Fragment implements RecyclerViewClickListener{
                 postCommentRef.addListenerForSingleValueEvent(commentVel);
 
                 mRecyclerViewComment.smoothScrollToPosition(mRecyclerViewItemsComment.size());
-
-//                int origNumComment = Integer.parseInt(post.getComment());
-//                String newNumComment = String.valueOf(commentNumber);
-////                postRef.child(post.getFbdbid()).child("comment").setValue(newNumComment);
-//                Map<String, Object> childUpdate = new HashMap<>();
-//                childUpdate.put("comment", newNumComment);
-//                postRef.child(post.getFbdbid()).updateChildren(childUpdate);
-
-
-
             }
         });
 
@@ -290,13 +274,6 @@ public class LoveFragment extends Fragment implements RecyclerViewClickListener{
         mRecyclerViewComment.setAdapter(mAdapterComment);
     }
 
-    public static String ProcessUnixTime (long unixSeconds) {
-        Date date = new Date(unixSeconds * 1000L); // *1000 is to convert seconds to milliseconds
-        SimpleDateFormat sdf = new SimpleDateFormat("dd-MMM-yyyy HH:mm", Locale.getDefault()); // the format of your date
-        sdf.setTimeZone(TimeZone.getTimeZone("GMT")); // give a timezone reference for formatting.
-        return sdf.format(date);
-    }
-
     private void setRecyclerViewAdapter(){
         // Retain an instance so that you can call `resetState()` for fresh searches
         scrollListener = new EndlessRecyclerViewScrollListener(layoutManager) {
@@ -368,11 +345,9 @@ public class LoveFragment extends Fragment implements RecyclerViewClickListener{
     }
 
     private ArrayList<Object> getData(){
-        logger.info("getData called.");
         ValueEventListener vel = new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
-                logger.info("postRef.getKey(): " + postRef.getKey());
                 if (!mRecyclerViewItems.isEmpty()) {
                     mRecyclerViewItems.clear();
                 }
@@ -387,7 +362,6 @@ public class LoveFragment extends Fragment implements RecyclerViewClickListener{
             }
         };
         postRef.limitToLast(7).addValueEventListener(vel);
-
         return mRecyclerViewItems;
     }
 

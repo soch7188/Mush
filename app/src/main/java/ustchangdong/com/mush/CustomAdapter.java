@@ -11,11 +11,7 @@ import android.widget.TextView;
 import com.google.android.gms.ads.AdRequest;
 import com.google.android.gms.ads.NativeExpressAdView;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
-import java.util.Locale;
-import java.util.TimeZone;
 import java.util.logging.Logger;
 
 import static ustchangdong.com.mush.MainActivity.ITEMS_PER_AD;
@@ -29,6 +25,7 @@ public class CustomAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
     private Logger logger = Logger.getLogger("CustomAdapter");
 
     private RecyclerViewClickListener listener;
+    private Utils utils;
 
     // A menu item view type.
     private static final int POST_ITEM_VIEW_TYPE = 0;
@@ -99,7 +96,6 @@ public class CustomAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
     @Override
     public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup viewGroup, int viewType) {
         final View postView = LayoutInflater.from(viewGroup.getContext()).inflate(R.layout.listview_post, viewGroup, false);
-
         return new PostItemViewHolder(postView, listener);
     }
 
@@ -113,7 +109,7 @@ public class CustomAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
         Post postItem = (Post) mRecyclerViewItems.get(position);
 
         // Add the menu item details to the menu item view.
-        postItemHolder.textViewTitle.setText(ProcessUnixTime((long) postItem.getTimestamp()));
+        postItemHolder.textViewTitle.setText(Utils.ProcessUnixTime((long) postItem.getTimestamp()));
         postItemHolder.textViewContent.setText(postItem.getContent());
         postItemHolder.textViewComment.setText(postItem.getComment() + " Comments");
 
@@ -128,13 +124,6 @@ public class CustomAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
             postItemHolder.adView.setVisibility(View.GONE);
         }
 
-    }
-
-    public static String ProcessUnixTime (long unixSeconds) {
-        Date date = new Date(unixSeconds); // *1000 is to convert seconds to milliseconds
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()); // the format of your date
-        sdf.setTimeZone(TimeZone.getTimeZone("GMT+8")); // give a timezone reference for formatting.
-        return sdf.format(date);
     }
 
     @Override

@@ -1,9 +1,8 @@
-package ustchangdong.com.mush;
+package ustchangdong.com.mush.Fragments;
 
 import android.app.Activity;
 import android.content.Context;
 import android.graphics.Point;
-import android.net.Uri;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v4.widget.SwipeRefreshLayout;
@@ -32,27 +31,30 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Logger;
 
+import ustchangdong.com.mush.Adapters.CommentAdapter;
+import ustchangdong.com.mush.Adapters.CustomAdapter;
+import ustchangdong.com.mush.DataClasses.Post;
+import ustchangdong.com.mush.DataClasses.PostComment;
+import ustchangdong.com.mush.R;
+import ustchangdong.com.mush.Utils.EndlessRecyclerViewScrollListener;
+import ustchangdong.com.mush.Utils.RecyclerViewClickListener;
+
 import static android.widget.PopupWindow.INPUT_METHOD_NEEDED;
 
-/**
- * A simple {@link Fragment} subclass.
- * Activities that contain this fragment must implement the
- * {@link AllFragment.OnFragmentInteractionListener} interface
- * to handle interaction events.
- * Use the {@link AllFragment#newInstance} factory method to
- * create an instance of this fragment.
- */
-public class AllFragment extends Fragment implements RecyclerViewClickListener {
-    private static final String TAG = "AllFragment";
-    private Logger logger = Logger.getLogger("AllFragment");
+public class PostingFragment extends Fragment implements RecyclerViewClickListener {
+    private static final String TAG = "PostingsFragment";
+    private Logger logger = Logger.getLogger("PostingsFragment");
+
+    private static String POSTING_TYPE_NAME = "posting_posts";
+
     Context mContext;
 
-    private static CommentAdapter mAdapterComment;
+    private CommentAdapter mAdapterComment;
     private LinearLayoutManager layoutManagerComment;
     private RecyclerView mRecyclerViewComment;
     private EndlessRecyclerViewScrollListener scrollListenerComment;
 
-    private static CustomAdapter mAdapter;
+    private CustomAdapter mAdapter;
     private LinearLayoutManager layoutManager;
     private RecyclerView mRecyclerView;
     private SwipeRefreshLayout mSwipeRefreshLayout;
@@ -64,17 +66,30 @@ public class AllFragment extends Fragment implements RecyclerViewClickListener {
 
     private ValueEventListener commentValueEventListener;
 
-    private static ArrayList<Object> mRecyclerViewItems = new ArrayList<>();
-    private static ArrayList<PostComment> mRecyclerViewItemsComment = new ArrayList<>();
-
-    private OnFragmentInteractionListener mListener;
+    private ArrayList<Object> mRecyclerViewItems = new ArrayList<>();
+    private ArrayList<PostComment> mRecyclerViewItemsComment = new ArrayList<>();
 
     private PopupWindow popWindow;
     private View rootView;
 
-    public AllFragment() {
-        // Required empty public constructor
+    public PostingFragment(){
+
     }
+
+    /**
+     * Use this factory method to create a new instance of
+     * this fragment using the provided parameters.
+     *
+     * @return A new instance of fragment all.
+     */
+    // TODO: Rename and change types and number of parameters
+//    public PostingFragment newInstance(String fragType) {
+//        PostingFragment fragment = new PostingFragment();
+//        Bundle args = new Bundle();
+//        fragment.setArguments(args);
+//        POSTING_TYPE_NAME = fragType;
+//        return fragment;
+//    }
 
     @Override
     public void onViewClicked(View view, int position) {
@@ -86,44 +101,25 @@ public class AllFragment extends Fragment implements RecyclerViewClickListener {
         onShowPopup(rootView, (Post) mRecyclerViewItems.get(position));
     }
 
-    /**
-     * Use this factory method to create a new instance of
-     * this fragment using the provided parameters.
-     *
-     * @param param1 Parameter 1.
-     * @param param2 Parameter 2.
-     * @return A new instance of fragment all.
-     */
-    // TODO: Rename and change types and number of parameters
-    public static AllFragment newInstance(String param1, String param2) {
-        AllFragment fragment = new AllFragment();
-        Bundle args = new Bundle();
-        fragment.setArguments(args);
-        return fragment;
-    }
-
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        if (getArguments() != null) {
-        }
     }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+        rootView = inflater.inflate(R.layout.fragment_postings, container, false);
 
-        rootView = inflater.inflate(R.layout.fragment_all, container, false);
-
-        mSwipeRefreshLayout = (SwipeRefreshLayout) rootView.findViewById(R.id.swipeRefreshLayout_all);
-        mRecyclerView = (RecyclerView) rootView.findViewById(R.id.rv_all);
+        mSwipeRefreshLayout = rootView.findViewById(R.id.swipeRefreshLayout_posting);
+        mRecyclerView = rootView.findViewById(R.id.rv_posting);
         mRecyclerView.setHasFixedSize(true);
         layoutManager = new LinearLayoutManager(rootView.getContext());
         mRecyclerView.setLayoutManager(layoutManager);
         mRecyclerView.setItemAnimator(new DefaultItemAnimator());
 
-        postRef = FirebaseDatabase.getInstance().getReference("all");
+        postRef = FirebaseDatabase.getInstance().getReference(POSTING_TYPE_NAME);
         commentRef = FirebaseDatabase.getInstance().getReference("comment");
-        setRecyclerViewAdapter(rootView);
+        setRecyclerViewAdapter();
         mSwipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
             @Override
             public void onRefresh() {
@@ -135,7 +131,7 @@ public class AllFragment extends Fragment implements RecyclerViewClickListener {
 
     public void onShowPopup(View v, final Post post){
         LayoutInflater layoutInflater = (LayoutInflater)v.getContext().getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-        postCommentRef = commentRef.child("all").child(post.getFbdbid());
+        postCommentRef = commentRef.child(POSTING_TYPE_NAME).child(post.getFbdbid());
 
         final View inflatedView = layoutInflater.inflate(R.layout.fb_popup_layout, null,false);
         mRecyclerViewComment = inflatedView.findViewById(R.id.rv_comment);
@@ -145,63 +141,107 @@ public class AllFragment extends Fragment implements RecyclerViewClickListener {
         mRecyclerViewComment.setItemAnimator(new DefaultItemAnimator());
 
         final EditText commentCnt = inflatedView.findViewById(R.id.commentContent);
-        Button commentSendBtn = inflatedView.findViewById(R.id.commentSendButton);
+        final Button commentSendBtn = inflatedView.findViewById(R.id.commentSendButton);
 
         commentSendBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                // Create new comment at /comment/$postId/$commentId
-                String key = postCommentRef.push().getKey();
-                PostComment comment = new PostComment(post.getUserid(), commentCnt.getText().toString(), post.getTimestamp());
-                Map<String, Object> commentValues = comment.toMap();
-                Map<String, Object> childUpdates = new HashMap<>();
-                childUpdates.put("/" + key, commentValues);
-                postCommentRef.updateChildren(childUpdates);
+                String commentText = commentCnt.getText().toString();
+                if (!commentText.isEmpty()){
+                    // Create new comment at /comment/$postId/$commentId
+                    String key = postCommentRef.push().getKey();
+                    PostComment comment = new PostComment(post.getUserid(), commentText, post.getTimestamp());
+                    Map<String, Object> commentValues = comment.toMap();
+                    Map<String, Object> childUpdates = new HashMap<>();
+                    childUpdates.put("/" + key, commentValues);
+                    postCommentRef.updateChildren(childUpdates);
 
-                int cmtNum = 0;
-                PostComment lastPostItem;
-                Double lastTimeStamp = 0.0;
-                if (!mRecyclerViewItemsComment.isEmpty()){
-                    lastPostItem = (PostComment) mRecyclerViewItemsComment.get(mRecyclerViewItemsComment.size() - 1);
-                    lastTimeStamp = lastPostItem.getTimestamp();
-                }
-                ValueEventListener commentVel = new ValueEventListener() {
-                    @Override
-                    public void onDataChange(DataSnapshot dataSnapshot) {
-                        int cmtNum = 0;
-                        for (DataSnapshot ds : dataSnapshot.getChildren()) {
-                            cmtNum += 1;
+                    commentCnt.setText("");
+
+                    int cmtNum = 0;
+                    PostComment lastPostItem;
+                    Double lastTimeStamp = 0.0;
+                    if (!mRecyclerViewItemsComment.isEmpty()){
+                        lastPostItem = (PostComment) mRecyclerViewItemsComment.get(mRecyclerViewItemsComment.size() - 1);
+                        lastTimeStamp = lastPostItem.getTimestamp();
+                    }
+                    ValueEventListener commentVel = new ValueEventListener() {
+                        @Override
+                        public void onDataChange(DataSnapshot dataSnapshot) {
+                            int cmtNum = 0;
+                            for (DataSnapshot ds : dataSnapshot.getChildren()) {
+                                cmtNum += 1;
+                            }
+                            String newNumComment = String.valueOf(cmtNum);
+                            Map<String, Object> childUpdate = new HashMap<>();
+                            childUpdate.put("comment", newNumComment);
+                            postRef.child(post.getFbdbid()).updateChildren(childUpdate);
+
                         }
-                        String newNumComment = String.valueOf(cmtNum);
-                        Map<String, Object> childUpdate = new HashMap<>();
-                        childUpdate.put("comment", newNumComment);
-                        postRef.child(post.getFbdbid()).updateChildren(childUpdate);
+                        @Override
+                        public void onCancelled(DatabaseError databaseError) {
+                        }
+                    };
+                    postCommentRef.addListenerForSingleValueEvent(commentVel);
 
-                    }
-                    @Override
-                    public void onCancelled(DatabaseError databaseError) {
-                    }
-                };
-                postCommentRef.addListenerForSingleValueEvent(commentVel);
-
-                mRecyclerViewComment.smoothScrollToPosition(mRecyclerViewItemsComment.size());
+                    mRecyclerViewComment.smoothScrollToPosition(mRecyclerViewItemsComment.size());
+                }
             }
         });
 
+        // get device size
         Display display = ((Activity)v.getContext()).getWindowManager().getDefaultDisplay();
         final Point size = new Point();
         display.getSize(size);
         int statusBarHeight = (int) (24 * v.getContext().getResources().getDisplayMetrics().density);
         final int mDeviceHeight = size.y - statusBarHeight;
 
+        // fill the data to the list items
         setRecyclerViewAdapterComment();
 
+        // set height depends on the device size
         popWindow = new PopupWindow(inflatedView, size.x, mDeviceHeight, true );
+        // set a background drawable with rounders corners
         popWindow.setBackgroundDrawable(getResources().getDrawable(R.drawable.fb_popup_bg));
+        // make it focusable to show the keyboard to enter in `EditText`
         popWindow.setFocusable(true);
+        // make it outside touchable to dismiss the popup window
         popWindow.setOutsideTouchable(true);
+
         popWindow.setHeight(WindowManager.LayoutParams.WRAP_CONTENT);
         popWindow.setInputMethodMode(INPUT_METHOD_NEEDED);
+
+//        popWindow.setAnimationStyle(-1);
+
+//      Attempt to allow swipe to dismiss feature.
+//        listView.setOnTouchListener(new View.OnTouchListener() {
+//            private int dx = 0;
+//            private int dy = 0;
+//
+//            @Override
+//            public boolean onTouch(View view, MotionEvent event) {
+//
+//                switch (event.getAction()) {
+//                    case MotionEvent.ACTION_DOWN:
+//                        dx = (int) event.getX();
+//                        dy = (int) event.getY();
+//                        break;
+//
+//                    case MotionEvent.ACTION_MOVE:
+//                        int xp = (int) event.getRawX();
+//                        int yp = (int) event.getRawY();
+//                        int sides = (xp - dx);
+//                        int topBot = (yp - dy);
+//                        Log.d("test", "x: " + sides + " y: " + topBot);
+//
+//                        listView.pos
+//
+//                        popWindow.setHeight(mDeviceHeight - topBot);
+//                        break;
+//                }
+//                return true;
+//            }
+//        });
 
         popWindow.setOnDismissListener(new PopupWindow.OnDismissListener() {
             @Override
@@ -262,20 +302,32 @@ public class AllFragment extends Fragment implements RecyclerViewClickListener {
         mRecyclerViewComment.setAdapter(mAdapterComment);
     }
 
-    private void setRecyclerViewAdapter(final View rootView){
+    private void setRecyclerViewAdapter(){
+        // Retain an instance so that you can call `resetState()` for fresh searches
         scrollListener = new EndlessRecyclerViewScrollListener(layoutManager) {
             @Override
             public void onLoadMore(int page, int totalItemsCount, RecyclerView view) {
-                loadNextDataFromApi(totalItemsCount, rootView);
+                // Triggered only when new mRecyclerViewItems needs to be appended to the list
+                // Add whatever code is needed to append new items to the bottom of the list
+                loadNextDataFromApi(totalItemsCount);
             }
         };
+        // Adds the scroll listener to RecyclerView
         mRecyclerView.addOnScrollListener(scrollListener);
         mAdapter = new CustomAdapter(mContext, getData(), this);
         mRecyclerView.setAdapter(mAdapter);
     }
 
 
-    public void loadNextDataFromApi(int offset, final View rootView) {
+    // Append the next page of mRecyclerViewItems into the adapter
+    // This method probably sends out a network request and appends new mRecyclerViewItems items to your adapter.
+    public void loadNextDataFromApi(int offset) {
+        // Send an API request to retrieve appropriate paginated mRecyclerViewItems
+        //  --> Send the request including an offset value (i.e `page`) as a query parameter.
+        //  --> Deserialize and construct new model objects from the API response
+        //  --> Append the new mRecyclerViewItems objects to the existing set of items inside the array of items
+        //  --> Notify the adapter of the new items made with `notifyItemRangeInserted()`
+        logger.info("LoadNext Called at offset: " + offset);
         Post lastPostItem;
         Double lastTimeStamp = 0.0;
         lastPostItem = (Post) mRecyclerViewItems.get(mRecyclerViewItems.size() - 1);
@@ -283,6 +335,7 @@ public class AllFragment extends Fragment implements RecyclerViewClickListener {
         postRef.orderByChild("timestamp").endAt(lastTimeStamp-1).limitToLast(7).addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
+                logger.info("Before Fetch dataset.size(): " + mRecyclerViewItems.size());
                 fetchData(dataSnapshot);
                 mAdapter.notifyDataSetChanged();
             }
@@ -294,20 +347,21 @@ public class AllFragment extends Fragment implements RecyclerViewClickListener {
     }
 
     public void loadNextDataFromApiComment(int offset, final View rootView) {
+        logger.info("LoadNext Called at offset: " + offset);
         PostComment lastPostItem;
         Double lastTimeStamp = 0.0;
-        lastPostItem = (PostComment) mRecyclerViewItemsComment.get(mRecyclerViewItemsComment.size() - 1);
+        lastPostItem = (PostComment) mRecyclerViewItemsComment.get(0);  // Get latest at bottom currently shown.
         lastTimeStamp = lastPostItem.getTimestamp();
         postCommentRef.orderByChild("timestamp").endAt(lastTimeStamp-1).limitToFirst(7).addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
+                logger.info("Before Fetch dataset.size(): " + mRecyclerViewItemsComment.size());
                 ArrayList<PostComment> temp = new ArrayList<>();
-                for (DataSnapshot ds : dataSnapshot.getChildren())
-                {
+                for (DataSnapshot ds : dataSnapshot.getChildren()) {
                     PostComment pc = ds.getValue(PostComment.class);
                     temp.add(pc);
                 }
-                Collections.reverse(temp);
+//                Collections.reverse(temp);
                 mRecyclerViewItemsComment.addAll(temp);
                 mAdapterComment.notifyDataSetChanged();
             }
@@ -371,6 +425,7 @@ public class AllFragment extends Fragment implements RecyclerViewClickListener {
     }
 
     private void fetchData(DataSnapshot dataSnapshot) {
+        logger.info("fetchData called.");
         ArrayList<Post> temp = new ArrayList<>();
         for (DataSnapshot ds : dataSnapshot.getChildren())
         {
@@ -379,6 +434,8 @@ public class AllFragment extends Fragment implements RecyclerViewClickListener {
         }
         Collections.reverse(temp);
         mRecyclerViewItems.addAll(temp);
+        logger.info("After fetchData - mRecyclerViewItems.size(): " + mRecyclerViewItems.size());
+
     }
 
     void refreshItems() {
@@ -399,45 +456,14 @@ public class AllFragment extends Fragment implements RecyclerViewClickListener {
         mSwipeRefreshLayout.setRefreshing(false);
     }
 
-    // TODO: Rename method, update argument and hook method into UI event
-    public void onButtonPressed(Uri uri) {
-        if (mListener != null) {
-            mListener.onFragmentInteraction(uri);
-        }
-    }
-
     @Override
     public void onAttach(Context context) {
         super.onAttach(context);
-
         this.mContext = context;
-
-        if (context instanceof OnFragmentInteractionListener) {
-            mListener = (OnFragmentInteractionListener) context;
-        } else {
-            throw new RuntimeException(context.toString()
-                    + " must implement OnFragmentInteractionListener");
-        }
     }
 
     @Override
     public void onDetach() {
         super.onDetach();
-        mListener = null;
-    }
-
-    /**
-     * This interface must be implemented by activities that contain this
-     * fragment to allow an interaction in this fragment to be communicated
-     * to the activity and potentially other fragments contained in that
-     * activity.
-     * <p>
-     * See the Android Training lesson <a href=
-     * "http://developer.android.com/training/basics/fragments/communicating.html"
-     * >Communicating with Other Fragments</a> for more information.
-     */
-    public interface OnFragmentInteractionListener {
-        // TODO: Update argument type and name
-        void onFragmentInteraction(Uri uri);
     }
 }

@@ -2,6 +2,17 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
 
     <item
+        android:id="@+id/navigation_posting"
+        android:icon="@drawable/ic_letter"
+        android:title="@string/title_posting"/>
+
+    <!--
+    <item
+        android:id="@+id/navigation_buyandsell"
+        android:icon="@drawable/ic_market"
+        android:title="@string/title_market"/>
+
+    <item
         android:id="@+id/navigation_love"
         android:icon="@drawable/ic_heart_svg"
         android:title="@string/title_love"/>
@@ -15,5 +26,12 @@
         android:id="@+id/navigation_all"
         android:icon="@drawable/ic_all"
         android:title="@string/title_all"/>
+
+    -->
+
+    <item
+        android:id="@+id/navigation_settings"
+        android:icon="@drawable/ic_settings"
+        android:title="@string/title_settings"/>
 
 </menu>

@@ -1,4 +1,4 @@
-package ustchangdong.com.mush;
+package ustchangdong.com.mush.Adapters;
 
 import android.content.Context;
 import android.graphics.Typeface;
@@ -10,6 +10,8 @@ import android.widget.TextView;
 
 import java.util.HashMap;
 import java.util.List;
+
+import ustchangdong.com.mush.R;
 
 /**
  * Created by ziwon on 2017. 10. 3..

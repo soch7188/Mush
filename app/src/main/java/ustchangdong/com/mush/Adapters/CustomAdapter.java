@@ -1,4 +1,4 @@
-package ustchangdong.com.mush;
+package ustchangdong.com.mush.Adapters;
 
 import android.content.Context;
 import android.support.v7.widget.CardView;
@@ -13,6 +13,11 @@ import com.google.android.gms.ads.NativeExpressAdView;
 
 import java.util.ArrayList;
 import java.util.logging.Logger;
+
+import ustchangdong.com.mush.DataClasses.Post;
+import ustchangdong.com.mush.R;
+import ustchangdong.com.mush.Utils.RecyclerViewClickListener;
+import ustchangdong.com.mush.Utils.Utils;
 
 import static ustchangdong.com.mush.MainActivity.ITEMS_PER_AD;
 

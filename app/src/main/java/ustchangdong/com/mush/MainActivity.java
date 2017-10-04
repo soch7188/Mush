@@ -3,8 +3,10 @@ package ustchangdong.com.mush;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
 import android.support.annotation.VisibleForTesting;
 import android.support.design.widget.BottomNavigationView;
@@ -117,7 +119,15 @@ public class MainActivity extends AppCompatActivity implements AllFragment.OnFra
         MobileAds.initialize(this, AD_UNIT_ID);
 
         // Subscribe to FCM Topic
-        FirebaseMessaging.getInstance().subscribeToTopic("general");
+        SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
+        Boolean notifOnOff = sharedPref.getBoolean(getString(R.string.notificationOnOffKey), true);
+        Log.i(TAG, String.valueOf(notifOnOff));
+
+        if (notifOnOff){
+            FirebaseMessaging.getInstance().subscribeToTopic("general");
+        } else {
+            FirebaseMessaging.getInstance().unsubscribeFromTopic("general");
+        }
 
         BottomNavigationView navigation = (BottomNavigationView) findViewById(R.id.navigation);
         navigation.setOnNavigationItemSelectedListener(mOnNavigationItemSelectedListener);

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+<PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto"
+                  xmlns:android="http://schemas.android.com/apk/res/android">
 
     <PreferenceCategory
         android:title="Notifications">
@@ -16,7 +17,7 @@
         <SwitchPreference
             android:key="@string/notificationOnOffKey"
             android:title="@string/notificationOnOffTitle"
-            android:defaultValue="on"/>
+            app:defaultValue="true"/>
         <!--
         <SwitchPreference
             android:key="@string/notification_new_post_key"

@@ -6,6 +6,7 @@ import android.support.annotation.Nullable;
 import android.support.v14.preference.SwitchPreference;
 import android.support.v7.preference.Preference;
 import android.support.v7.preference.PreferenceManager;
+import android.util.Log;
 
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.takisoft.fix.support.v7.preference.PreferenceFragmentCompat;
@@ -34,11 +35,15 @@ public class SettingsFragment extends PreferenceFragmentCompat implements Shared
         Preference preference = findPreference(key);
 
         if (preference instanceof SwitchPreference){
-            if (preference.getKey().equals(R.string.notification_new_post_key)) {
-                if (preference.isEnabled()) {
-                    FirebaseMessaging.getInstance().subscribeToTopic("newpost");
+            if (preference.getKey().equals(getString(R.string.notificationOnOffKey))) {
+                SwitchPreference sp = (SwitchPreference) preference;
+                Log.i(TAG, "sp.isChecked(): " + sp.isChecked());
+                if (sp.isChecked()) {
+                    Log.i(TAG, "Preference is Enabled. Subscribing to topic: GENERAL");
+                    FirebaseMessaging.getInstance().subscribeToTopic("general");
                 } else {
-                    FirebaseMessaging.getInstance().unsubscribeFromTopic("newpost");
+                    Log.i(TAG, "Preference is Disabled. Unsubscribing from topic: GENERAL");
+                    FirebaseMessaging.getInstance().unsubscribeFromTopic("general");
                 }
             }
 //            else if (preference.getKey().equals(R.string.notificationOnOffKey)){

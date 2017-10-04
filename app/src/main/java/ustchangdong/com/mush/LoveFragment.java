@@ -26,17 +26,18 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
+import java.util.TimeZone;
 import java.util.logging.Logger;
 
 import static android.widget.PopupWindow.INPUT_METHOD_NEEDED;
 
-/**
- * A simple {@link Fragment} subclass.
- */
 public class LoveFragment extends Fragment implements RecyclerViewClickListener{
     private static final String TAG = "LoveFragment";
     private Logger logger = Logger.getLogger("LoveFragment");
@@ -67,30 +68,17 @@ public class LoveFragment extends Fragment implements RecyclerViewClickListener{
     private PopupWindow popWindow;
     private View rootView;
 
-    private FirebaseHelper firebaseHelper;
-
     public LoveFragment() {
         // Required empty public constructor
     }
 
     @Override
     public void onViewClicked(View view, int position) {
-//        Toast.makeText(getActivity(), "view", Toast.LENGTH_SHORT).show();
-        logger.info("mRecyclerViewItems.size(): " + mRecyclerViewItems.size());
-        logger.info("position: " + position);
-        logger.info("((Post) mRecyclerViewItems.get(position)).getContent(): " + ((Post) mRecyclerViewItems.get(position)).getContent());
-        logger.info("((Post) mRecyclerViewItems.get(position)).getFbdbid(): " + ((Post) mRecyclerViewItems.get(position)).getFbdbid());
         onShowPopup(rootView, (Post) mRecyclerViewItems.get(position));
     }
 
     @Override
     public void onRowClicked(int position) {
-//        Toast.makeText(getActivity(), "row", Toast.LENGTH_SHORT).show();
-        logger.info("mRecyclerViewItems.size(): " + mRecyclerViewItems.size());
-        logger.info("position: " + position);
-        logger.info("((Post) mRecyclerViewItems.get(position)).getContent(): " + ((Post) mRecyclerViewItems.get(position)).getContent());
-        logger.info("((Post) mRecyclerViewItems.get(position)).getFbdbid(): " + ((Post) mRecyclerViewItems.get(position)).getFbdbid());
-
         onShowPopup(rootView, (Post) mRecyclerViewItems.get(position));
     }
 
@@ -103,57 +91,89 @@ public class LoveFragment extends Fragment implements RecyclerViewClickListener{
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         rootView = inflater.inflate(R.layout.fragment_love, container, false);
 
-        mSwipeRefreshLayout = (SwipeRefreshLayout) rootView.findViewById(R.id.swipeRefreshLayout_love);
-        mRecyclerView = (RecyclerView) rootView.findViewById(R.id.rv_love);
+        mSwipeRefreshLayout = rootView.findViewById(R.id.swipeRefreshLayout_love);
+        mRecyclerView = rootView.findViewById(R.id.rv_love);
         mRecyclerView.setHasFixedSize(true);
         layoutManager = new LinearLayoutManager(rootView.getContext());
         mRecyclerView.setLayoutManager(layoutManager);
         mRecyclerView.setItemAnimator(new DefaultItemAnimator());
 
-//        authenticate(rootView);
-//        firebaseHelper.authenticate(rootView);
-
         postRef = FirebaseDatabase.getInstance().getReference("love");
         commentRef = FirebaseDatabase.getInstance().getReference("comment");
-//        postCommentRef = FirebaseDatabase.getInstance().getReference("comment/love");
-        setRecyclerViewAdapter(rootView);
+        setRecyclerViewAdapter();
         mSwipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
             @Override
             public void onRefresh() {
                 refreshItems();
             }
         });
-
         return rootView;
     }
 
-    // call this method when required to show popup
+    int commentNumber = 0;
+
     public void onShowPopup(View v, final Post post){
         LayoutInflater layoutInflater = (LayoutInflater)v.getContext().getSystemService(Context.LAYOUT_INFLATER_SERVICE);
         postCommentRef = commentRef.child("love").child(post.getFbdbid());
 
-        // inflate the custom popup layout
         final View inflatedView = layoutInflater.inflate(R.layout.fb_popup_layout, null,false);
-        // find the RecyclerView in the popup layout
         mRecyclerViewComment = inflatedView.findViewById(R.id.rv_comment);
         mRecyclerViewComment.setHasFixedSize(true);
         layoutManagerComment = new LinearLayoutManager(rootView.getContext());
         mRecyclerViewComment.setLayoutManager(layoutManagerComment);
         mRecyclerViewComment.setItemAnimator(new DefaultItemAnimator());
 
-        final EditText commentContent = (EditText) inflatedView.findViewById(R.id.commentContent);
+        final EditText commentCnt = inflatedView.findViewById(R.id.commentContent);
+        Button commentSendBtn = inflatedView.findViewById(R.id.commentSendButton);
 
-        Button commentSendButton = (Button) inflatedView.findViewById(R.id.commentSendButton);
-        commentSendButton.setOnClickListener(new View.OnClickListener() {
+        commentSendBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 // Create new comment at /comment/$postId/$commentId
                 String key = postCommentRef.push().getKey();
-                PostComment comment = new PostComment(post.getUserid(), commentContent.getText().toString(), post.getTimestamp());
+                PostComment comment = new PostComment(post.getUserid(), commentCnt.getText().toString(), post.getTimestamp());
                 Map<String, Object> commentValues = comment.toMap();
                 Map<String, Object> childUpdates = new HashMap<>();
                 childUpdates.put("/" + key, commentValues);
                 postCommentRef.updateChildren(childUpdates);
+
+                int cmtNum = 0;
+                PostComment lastPostItem;
+                Double lastTimeStamp = 0.0;
+                if (!mRecyclerViewItemsComment.isEmpty()){
+                    lastPostItem = (PostComment) mRecyclerViewItemsComment.get(mRecyclerViewItemsComment.size() - 1);
+                    lastTimeStamp = lastPostItem.getTimestamp();
+                }
+                ValueEventListener commentVel = new ValueEventListener() {
+                    @Override
+                    public void onDataChange(DataSnapshot dataSnapshot) {
+                        int cmtNum = 0;
+                        for (DataSnapshot ds : dataSnapshot.getChildren()) {
+                            cmtNum += 1;
+                        }
+                        String newNumComment = String.valueOf(cmtNum);
+                        Map<String, Object> childUpdate = new HashMap<>();
+                        childUpdate.put("comment", newNumComment);
+                        postRef.child(post.getFbdbid()).updateChildren(childUpdate);
+
+                    }
+                    @Override
+                    public void onCancelled(DatabaseError databaseError) {
+                    }
+                };
+                postCommentRef.addListenerForSingleValueEvent(commentVel);
+
+                mRecyclerViewComment.smoothScrollToPosition(mRecyclerViewItemsComment.size());
+
+//                int origNumComment = Integer.parseInt(post.getComment());
+//                String newNumComment = String.valueOf(commentNumber);
+////                postRef.child(post.getFbdbid()).child("comment").setValue(newNumComment);
+//                Map<String, Object> childUpdate = new HashMap<>();
+//                childUpdate.put("comment", newNumComment);
+//                postRef.child(post.getFbdbid()).updateChildren(childUpdate);
+
+
+
             }
         });
 
@@ -165,7 +185,7 @@ public class LoveFragment extends Fragment implements RecyclerViewClickListener{
         final int mDeviceHeight = size.y - statusBarHeight;
 
         // fill the data to the list items
-        setRecyclerViewAdapterComment(mRecyclerViewComment);
+        setRecyclerViewAdapterComment();
 
         // set height depends on the device size
         popWindow = new PopupWindow(inflatedView, size.x, mDeviceHeight, true );
@@ -215,6 +235,7 @@ public class LoveFragment extends Fragment implements RecyclerViewClickListener{
             @Override
             public void onDismiss() {
                 postCommentRef.removeEventListener(commentValueEventListener);
+                mRecyclerViewItemsComment.clear();
             }
         });
 
@@ -222,8 +243,7 @@ public class LoveFragment extends Fragment implements RecyclerViewClickListener{
         popWindow.showAtLocation(v, Gravity.BOTTOM, 0, 0);
     }
 
-    void setRecyclerViewAdapterComment(RecyclerView recyclerView){
-
+    void setRecyclerViewAdapterComment(){
         // Retain an instance so that you can call `resetState()` for fresh searches
         scrollListenerComment = new EndlessRecyclerViewScrollListener(layoutManagerComment) {
             @Override
@@ -252,7 +272,7 @@ public class LoveFragment extends Fragment implements RecyclerViewClickListener{
                     temp.add(pc);
                 }
 
-                Collections.reverse(temp);
+//                Collections.reverse(temp);    // Comments should show up on bottom.
                 mRecyclerViewItemsComment.addAll(temp);
 
                 if (mAdapterComment != null){
@@ -270,14 +290,21 @@ public class LoveFragment extends Fragment implements RecyclerViewClickListener{
         mRecyclerViewComment.setAdapter(mAdapterComment);
     }
 
-    private void setRecyclerViewAdapter(final View rootView){
+    public static String ProcessUnixTime (long unixSeconds) {
+        Date date = new Date(unixSeconds * 1000L); // *1000 is to convert seconds to milliseconds
+        SimpleDateFormat sdf = new SimpleDateFormat("dd-MMM-yyyy HH:mm", Locale.getDefault()); // the format of your date
+        sdf.setTimeZone(TimeZone.getTimeZone("GMT")); // give a timezone reference for formatting.
+        return sdf.format(date);
+    }
+
+    private void setRecyclerViewAdapter(){
         // Retain an instance so that you can call `resetState()` for fresh searches
         scrollListener = new EndlessRecyclerViewScrollListener(layoutManager) {
             @Override
             public void onLoadMore(int page, int totalItemsCount, RecyclerView view) {
                 // Triggered only when new mRecyclerViewItems needs to be appended to the list
                 // Add whatever code is needed to append new items to the bottom of the list
-                loadNextDataFromApi(totalItemsCount, rootView);
+                loadNextDataFromApi(totalItemsCount);
             }
         };
         // Adds the scroll listener to RecyclerView
@@ -289,7 +316,7 @@ public class LoveFragment extends Fragment implements RecyclerViewClickListener{
 
     // Append the next page of mRecyclerViewItems into the adapter
     // This method probably sends out a network request and appends new mRecyclerViewItems items to your adapter.
-    public void loadNextDataFromApi(int offset, final View rootView) {
+    public void loadNextDataFromApi(int offset) {
         // Send an API request to retrieve appropriate paginated mRecyclerViewItems
         //  --> Send the request including an offset value (i.e `page`) as a query parameter.
         //  --> Deserialize and construct new model objects from the API response
@@ -310,7 +337,6 @@ public class LoveFragment extends Fragment implements RecyclerViewClickListener{
 
             @Override
             public void onCancelled(DatabaseError databaseError) {
-
             }
         });
     }
@@ -319,53 +345,49 @@ public class LoveFragment extends Fragment implements RecyclerViewClickListener{
         logger.info("LoadNext Called at offset: " + offset);
         PostComment lastPostItem;
         Double lastTimeStamp = 0.0;
-        lastPostItem = (PostComment) mRecyclerViewItemsComment.get(mRecyclerViewItemsComment.size() - 1);
+        lastPostItem = (PostComment) mRecyclerViewItemsComment.get(0);  // Get latest at bottom currently shown.
         lastTimeStamp = lastPostItem.getTimestamp();
-        postCommentRef.orderByChild("timestamp").endAt(lastTimeStamp-1).limitToLast(7).addListenerForSingleValueEvent(new ValueEventListener() {
+        postCommentRef.orderByChild("timestamp").endAt(lastTimeStamp-1).limitToFirst(7).addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
                 logger.info("Before Fetch dataset.size(): " + mRecyclerViewItemsComment.size());
-
                 ArrayList<PostComment> temp = new ArrayList<>();
-                for (DataSnapshot ds : dataSnapshot.getChildren())
-                {
+                for (DataSnapshot ds : dataSnapshot.getChildren()) {
                     PostComment pc = ds.getValue(PostComment.class);
                     temp.add(pc);
                 }
-
-                Collections.reverse(temp);
+//                Collections.reverse(temp);
                 mRecyclerViewItemsComment.addAll(temp);
-
                 mAdapterComment.notifyDataSetChanged();
             }
 
             @Override
             public void onCancelled(DatabaseError databaseError) {
-
             }
         });
     }
 
     private ArrayList<Object> getData(){
         logger.info("getData called.");
-        postRef.limitToLast(7).addValueEventListener(new ValueEventListener() {
+        ValueEventListener vel = new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
-                if (!mRecyclerViewItems.isEmpty()){
+                logger.info("postRef.getKey(): " + postRef.getKey());
+                if (!mRecyclerViewItems.isEmpty()) {
                     mRecyclerViewItems.clear();
                 }
                 fetchData(dataSnapshot);
-                if (mAdapter != null){
+                if (mAdapter != null) {
                     mAdapter.notifyDataSetChanged();
                 }
                 scrollListener.resetState();
             }
-
             @Override
             public void onCancelled(DatabaseError databaseError) {
-
             }
-        });
+        };
+        postRef.limitToLast(7).addValueEventListener(vel);
+
         return mRecyclerViewItems;
     }
 

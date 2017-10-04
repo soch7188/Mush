@@ -190,7 +190,7 @@ public class MainActivity extends AppCompatActivity implements LoveFragment.OnFr
         // Create new post at /user-posts/$userid/$postid and at
         // /posts/$postid simultaneously
         String key = mDatabase.push().getKey();
-        Post post = new Post(key, userId, title, content);
+        Post post = new Post(key, userId, title, content, "0"); // Comment is set to 0 for new posts.
         Map<String, Object> postValues = post.toMap();
 
         Map<String, Object> childUpdates = new HashMap<>();

@@ -16,17 +16,19 @@ public class Post {
     private String userid;
     private String title;
     private String content;
+    private String comment;
     private double timestamp;
 
     public Post() {
         // Default constructor required for calls to DataSnapshot.getValue(Post.class)
     }
 
-    public Post(String fbdbid, String userId, String title, String content) {
+    public Post(String fbdbid, String userId, String title, String content, String comment) {
         this.fbdbid = fbdbid;
         this.userid = userId;
         this.title = title;
         this.content = content;
+        this.comment = comment;
     }
 
     public double getTimestamp(){
@@ -40,8 +42,17 @@ public class Post {
         result.put("userid", userid);
         result.put("title", title);
         result.put("content", content);
+        result.put("comment", comment);
         result.put("timestamp", ServerValue.TIMESTAMP);
         return result;
+    }
+
+    public String getFbdbid() {
+        return fbdbid;
+    }
+
+    public void setFbdbid(String fbdbid) {
+        this.fbdbid = fbdbid;
     }
 
     public String getUserid() {
@@ -68,15 +79,15 @@ public class Post {
         this.content = content;
     }
 
+    public String getComment() {
+        return comment;
+    }
+
+    public void setComment(String comment) {
+        this.comment = comment;
+    }
+
     public void setTimestamp(double timestamp) {
         this.timestamp = timestamp;
-    }
-
-    public String getFbdbid() {
-        return fbdbid;
-    }
-
-    public void setFbdbid(String fbdbid) {
-        this.fbdbid = fbdbid;
     }
 }

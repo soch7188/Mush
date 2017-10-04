@@ -12,16 +12,15 @@ import java.util.Map;
 
 public class PostComment {
 
-    private String uid;
+    private String userid;
     private String content;
     private double timestamp;
 
     public PostComment() {
-        // Default constructor required for calls to DataSnapshot.getValue(Post.class)
     }
 
-    public PostComment(String uid, String content, Double timestamp) {
-        this.uid = uid;
+    public PostComment(String userid, String content, Double timestamp) {
+        this.userid = userid;
         this.content = content;
         this.timestamp = timestamp;
     }
@@ -33,18 +32,18 @@ public class PostComment {
     @Exclude
     public Map<String, Object> toMap() {
         HashMap<String, Object> result = new HashMap<>();
-        result.put("uid", uid);
+        result.put("userid", userid);
         result.put("content", content);
         result.put("timestamp", ServerValue.TIMESTAMP);
         return result;
     }
 
-    public String getUid() {
-        return uid;
+    public String getUserid() {
+        return userid;
     }
 
-    public void setUid(String uid) {
-        this.uid = uid;
+    public void setUserid(String userid) {
+        this.userid = userid;
     }
 
     public String getContent() {

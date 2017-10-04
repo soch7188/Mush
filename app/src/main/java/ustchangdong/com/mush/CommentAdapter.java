@@ -7,7 +7,11 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
+import java.util.Locale;
+import java.util.TimeZone;
 import java.util.logging.Logger;
 
 /**
@@ -43,22 +47,29 @@ public class CommentAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
             this.textViewContent = (TextView) itemView.findViewById(R.id.comment_content);
             this.textViewTime = itemView.findViewById(R.id.comment_time);
 
-            itemView.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    if(listener != null)
-                        listener.onRowClicked(getAdapterPosition());
-                }
-            });
-
-            textViewContent.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    if(listener != null)
-                        listener.onViewClicked(v, getAdapterPosition());
-                }
-            });
+//            itemView.setOnClickListener(new View.OnClickListener() {
+//                @Override
+//                public void onClick(View v) {
+//                    if(listener != null)
+//                        listener.onRowClicked(getAdapterPosition());
+//                }
+//            });
+//
+//            textViewContent.setOnClickListener(new View.OnClickListener() {
+//                @Override
+//                public void onClick(View v) {
+//                    if(listener != null)
+//                        listener.onViewClicked(v, getAdapterPosition());
+//                }
+//            });
         }
+    }
+
+    public static String ProcessUnixTime (long unixSeconds) {
+        Date date = new Date(unixSeconds); // *1000 is to convert seconds to milliseconds
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()); // the format of your date
+        sdf.setTimeZone(TimeZone.getTimeZone("GMT+8")); // give a timezone reference for formatting.
+        return sdf.format(date);
     }
 
     /**
@@ -81,7 +92,7 @@ public class CommentAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         PostComment postCommentItem = (PostComment) mRecyclerViewItems.get(position);
 
         // Add the menu item details to the menu item view.
-        postItemHolder.textViewTime.setText(String.valueOf(postCommentItem.getTimestamp()));
+        postItemHolder.textViewTime.setText(ProcessUnixTime((long) postCommentItem.getTimestamp()));
         postItemHolder.textViewContent.setText(postCommentItem.getContent());
     }
 

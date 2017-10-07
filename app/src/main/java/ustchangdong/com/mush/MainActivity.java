@@ -13,6 +13,7 @@ import android.support.design.widget.Snackbar;
 import android.support.v4.app.FragmentTransaction;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
@@ -37,7 +38,6 @@ public class MainActivity extends AppCompatActivity implements LoveFragment.OnFr
         StudyFragment.OnFragmentInteractionListener, AllFragment.OnFragmentInteractionListener {
     private static final String TAG = "MainActivity";
     final Context context = this;
-
     // A Native Express ad is placed in every nth position in the RecyclerView.
     public static final int ITEMS_PER_AD = 6;
 
@@ -143,7 +143,19 @@ public class MainActivity extends AppCompatActivity implements LoveFragment.OnFr
     }
 
     private void setFloatingActionButton(){
-        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab_post);
+       final FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab_post);
+        RecyclerView recycler_view = (RecyclerView)findViewById(R.id.recycler_view);
+        recycler_view.addOnScrollListener(new RecyclerView.OnScrollListener() {
+
+            public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
+                if (dy == 0) {
+                    fab.show();
+                } else if (dy != 0) {
+                    fab.hide();
+                }
+                super.onScrolled(recyclerView, dx, dy);
+            }
+        });
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(final View view) {
@@ -184,7 +196,8 @@ public class MainActivity extends AppCompatActivity implements LoveFragment.OnFr
                 }
             }
         });
-    }
+        }
+
 
     private void writeNewPost(String userId, String title, String content, int radioGroupCategory) {
         // Create new post at /user-posts/$userid/$postid and at
@@ -259,4 +272,5 @@ public class MainActivity extends AppCompatActivity implements LoveFragment.OnFr
     public void onFragmentInteraction(Uri uri) {
 
     }
+
 }

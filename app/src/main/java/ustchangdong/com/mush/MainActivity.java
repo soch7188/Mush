@@ -56,6 +56,7 @@ public class MainActivity extends AppCompatActivity implements LoveFragment.OnFr
     private DatabaseReference mDatabase;
     private DatabaseReference postLoveRef;
 
+
     @Override
     public void onStart() {
         super.onStart();
@@ -161,7 +162,7 @@ public class MainActivity extends AppCompatActivity implements LoveFragment.OnFr
 
                 try {
                     alertDialogBuilder
-                            .setCancelable(false)
+                            .setCancelable(true)
                             .setPositiveButton("OK",
                                     new DialogInterface.OnClickListener() {
                                         public void onClick(DialogInterface dialog, int id) {
@@ -177,14 +178,21 @@ public class MainActivity extends AppCompatActivity implements LoveFragment.OnFr
                                             dialog.cancel();
                                         }
                                     })
+
                             .create()
                             .show();
                 } catch (Exception e){
                     e.printStackTrace();
                 }
+
+
+
+
             }
         });
     }
+
+
 
     private void writeNewPost(String userId, String title, String content, int radioGroupCategory) {
         // Create new post at /user-posts/$userid/$postid and at

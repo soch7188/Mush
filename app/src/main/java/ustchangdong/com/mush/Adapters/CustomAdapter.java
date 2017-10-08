@@ -1,4 +1,4 @@
-package ustchangdong.com.mush;
+package ustchangdong.com.mush.Adapters;
 
 import android.content.Context;
 import android.support.v7.widget.CardView;
@@ -14,6 +14,11 @@ import com.google.android.gms.ads.NativeExpressAdView;
 import java.util.ArrayList;
 import java.util.logging.Logger;
 
+import ustchangdong.com.mush.DataClasses.Post;
+import ustchangdong.com.mush.R;
+import ustchangdong.com.mush.Utils.RecyclerViewClickListener;
+import ustchangdong.com.mush.Utils.Utils;
+
 import static ustchangdong.com.mush.MainActivity.ITEMS_PER_AD;
 
 /**
@@ -25,6 +30,7 @@ public class CustomAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
     private Logger logger = Logger.getLogger("CustomAdapter");
 
     private RecyclerViewClickListener listener;
+    private Utils utils;
 
     // A menu item view type.
     private static final int POST_ITEM_VIEW_TYPE = 0;
@@ -95,7 +101,6 @@ public class CustomAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
     @Override
     public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup viewGroup, int viewType) {
         final View postView = LayoutInflater.from(viewGroup.getContext()).inflate(R.layout.listview_post, viewGroup, false);
-
         return new PostItemViewHolder(postView, listener);
     }
 
@@ -105,15 +110,15 @@ public class CustomAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
      */
     @Override
     public void onBindViewHolder(RecyclerView.ViewHolder holder, int position) {
-            PostItemViewHolder postItemHolder = (PostItemViewHolder) holder;
-            Post postItem = (Post) mRecyclerViewItems.get(position);
+        PostItemViewHolder postItemHolder = (PostItemViewHolder) holder;
+        Post postItem = (Post) mRecyclerViewItems.get(position);
 
-            // Add the menu item details to the menu item view.
-            postItemHolder.textViewTitle.setText(postItem.getTitle());
-            postItemHolder.textViewContent.setText(postItem.getContent());
+        // Add the menu item details to the menu item view.
+        postItemHolder.textViewTitle.setText(Utils.ProcessUnixTime((long) postItem.getTimestamp()));
+        postItemHolder.textViewContent.setText(postItem.getContent());
+        postItemHolder.textViewComment.setText(postItem.getComment() + " Comments");
 
         logger.info("onBindViewHolder position: " + position);
-        logger.info("onBindViewHolder postItemHolder.getAdapterPosition(): " + postItemHolder.getAdapterPosition());
         if (postItemHolder.getAdapterPosition() % ITEMS_PER_AD == 0){
 //            postItemHolder.adCardView.setVisibility(View.VISIBLE);
             postItemHolder.adView.setVisibility(View.VISIBLE);

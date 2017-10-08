@@ -144,7 +144,6 @@ public class MainActivity extends AppCompatActivity implements LoveFragment.OnFr
 
     private void setFloatingActionButton(){
        final FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab_post);
-        RecyclerView recycler_view = (RecyclerView)findViewById(R.id.recycler_view);
         recycler_view.addOnScrollListener(new RecyclerView.OnScrollListener() {
 
             public void onScrolled(RecyclerView recyclerView, int dx, int dy) {

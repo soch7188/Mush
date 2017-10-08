@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string-array name="logoutInterval">
+        <item name="60000">1 minute</item>
+        <item name="300000">5 minutes</item>
+        <item name="1800000">30 minutes</item>
+        <item name="3600000">1 hour</item>
+        <item name="10800000">3 hours</item>
+    </string-array>
+
+    <string-array name="logoutIntervalValues">
+        <item name="60000">60000</item>
+        <item name="300000">300000</item>
+        <item name="1800000">1800000</item>
+        <item name="3600000">3600000</item>
+        <item name="10800000">10800000</item>
+    </string-array>
+
+    <string-array name="shutdownInterval">
+        <item name="60000">1 minute</item>
+        <item name="300000">5 minutes</item>
+        <item name="1800000">30 minutes</item>
+        <item name="3600000">1 hour</item>
+        <item name="10800000">3 hours</item>
+    </string-array>
+
+    <string-array name="shutdownIntervalValues">
+        <item name="60000">60000</item>
+        <item name="300000">300000</item>
+        <item name="1800000">1800000</item>
+        <item name="3600000">3600000</item>
+        <item name="10800000">10800000</item>
+    </string-array>
+
+</resources>

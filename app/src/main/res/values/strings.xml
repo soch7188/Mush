@@ -1,11 +1,15 @@
 <resources>
-    <string name="app_name">Mush</string>
+    <string name="app_name">Mush_Dev</string>
     <string name="title_home">Home</string>
     <string name="title_dashboard">Dashboard</string>
     <string name="title_notifications">Notifications</string>
+
+    <string name="title_posting">Posts</string>
+    <string name="title_market">Market</string>
     <string name="title_love">Love</string>
     <string name="title_study">Study</string>
     <string name="title_all">All</string>
+    <string name="title_settings">Setting</string>
 
     <string name="action_settings">Settings</string>
     <string name="loading">Loading…</string>
@@ -18,9 +22,19 @@
     <string name="id_fmt">User ID: %s</string>
     <string name="email_fmt">Email: %s</string>
 
-    <!-- TODO: Remove or change this placeholder text -->
-    <string name="hello_blank_fragment">Hello blank fragment</string>
-
     <string name="ad_unit_id">ca-app-pub-6525167222338120/6384998774</string>
+
+    <!-- Strings related to Preferences (Settings) -->
+    <string name="preference_auto_logout_title">Auto-Logout Interval</string>
+    <string name="preference_auto_logout_summary">Select time of inactivity before auto-logout</string>
+    <string name="preference_auto_shutdown_title">Auto-Shutdown Interval</string>
+    <string name="preference_auto_shutdown_summary">Select time of inactivity after auto-logout and before auto-shutdown</string>
+    <string name="notification_new_post_key">notifiNewPostKey</string>
+    <string name="notification_new_post_title">Receive New Post Notifications</string>
+    <string name="notification_new_post_summary">Be informed when New Posts arrive. Stay up to date.</string>
+    <string name="notificationOnOffKey">notificationOnOffKey</string>
+    <string name="notificationOnOffTitle">Receive General Notifications</string>
+
+
 
 </resources>

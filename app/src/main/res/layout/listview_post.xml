@@ -27,26 +27,31 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="start"
-                android:layout_marginTop="5dp"
-                android:layout_marginStart="5dp"
-                android:text="Title"
-                android:textAppearance="?android:attr/textAppearanceLarge"/>
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:text="Time Here - Sept 15th 2:34am"
+                android:textAppearance="?android:attr/textAppearanceMedium"/>
 
             <TextView
                 android:id="@+id/textViewContent"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="start"
-                android:layout_margin="10dp"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
                 android:text="Write whatever here. Apprx 30~100 words. Write whatever here. Apprx 30~100 words.
                  Write whatever here. Apprx 30~100 words. Write whatever here. Apprx 30~100 words"
-                android:textAppearance="?android:attr/textAppearanceMedium"/>
+                android:textAppearance="?android:attr/textAppearanceLarge"/>
 
             <TextView
                 android:id="@+id/textViewComments"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:padding="5dp"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp"
+                android:textSize="16sp"
                 android:textAppearance="?android:attr/textAppearanceSmall"
                 android:text="Comment Goes Here"
                 />

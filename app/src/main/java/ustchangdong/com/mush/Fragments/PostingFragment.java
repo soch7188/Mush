@@ -1,9 +1,12 @@
 package ustchangdong.com.mush.Fragments;
 
+import android.annotation.TargetApi;
 import android.app.Activity;
 import android.content.Context;
 import android.graphics.Point;
+import android.os.Build;
 import android.os.Bundle;
+import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.Fragment;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.widget.DefaultItemAnimator;
@@ -13,6 +16,7 @@ import android.view.Display;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.View.OnScrollChangeListener;
 import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.Button;
@@ -35,6 +39,7 @@ import ustchangdong.com.mush.Adapters.CommentAdapter;
 import ustchangdong.com.mush.Adapters.CustomAdapter;
 import ustchangdong.com.mush.DataClasses.Post;
 import ustchangdong.com.mush.DataClasses.PostComment;
+import ustchangdong.com.mush.MainActivity;
 import ustchangdong.com.mush.R;
 import ustchangdong.com.mush.Utils.EndlessRecyclerViewScrollListener;
 import ustchangdong.com.mush.Utils.RecyclerViewClickListener;
@@ -76,6 +81,7 @@ public class PostingFragment extends Fragment implements RecyclerViewClickListen
 
     }
 
+
     /**
      * Use this factory method to create a new instance of
      * this fragment using the provided parameters.
@@ -106,6 +112,7 @@ public class PostingFragment extends Fragment implements RecyclerViewClickListen
         super.onCreate(savedInstanceState);
     }
 
+    @TargetApi(Build.VERSION_CODES.M)
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         rootView = inflater.inflate(R.layout.fragment_postings, container, false);
@@ -116,6 +123,22 @@ public class PostingFragment extends Fragment implements RecyclerViewClickListen
         layoutManager = new LinearLayoutManager(rootView.getContext());
         mRecyclerView.setLayoutManager(layoutManager);
         mRecyclerView.setItemAnimator(new DefaultItemAnimator());
+                // google refer 해
+//        mRecyclerView.setOnScrollChangeListener(new View.OnScrollChangeListener() {
+//            @Override
+//            public void onScrollChange(View view, int i, int i1, int i2, int i3) {
+//
+//            }
+//        });
+                mRecyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
+                    public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
+                        if (dy < 0) {
+                            MainActivity.fab.setVisibility(View.VISIBLE);
+                        } else if (dy > 0) {
+                            MainActivity.fab.setVisibility(View.INVISIBLE);
+                        }
+                    }
+                });
 
         postRef = FirebaseDatabase.getInstance().getReference(POSTING_TYPE_NAME);
         commentRef = FirebaseDatabase.getInstance().getReference("comment");

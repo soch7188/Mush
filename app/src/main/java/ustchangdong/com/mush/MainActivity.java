@@ -68,6 +68,7 @@ public class MainActivity extends AppCompatActivity implements AllFragment.OnFra
     private FirebaseUser currentUser;
     private DatabaseReference mDatabase;
 
+    public static FloatingActionButton fab;
 
     @Override
     public void onStart() {
@@ -166,7 +167,7 @@ public class MainActivity extends AppCompatActivity implements AllFragment.OnFra
     }
 
     private void setFloatingActionButton(){
-        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab_post);
+        fab = (FloatingActionButton) findViewById(R.id.fab_post);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(final View view) {

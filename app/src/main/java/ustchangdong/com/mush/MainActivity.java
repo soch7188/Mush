@@ -50,6 +50,8 @@ public class MainActivity extends AppCompatActivity implements AllFragment.OnFra
     private FirebaseUser currentUser;
     public static DatabaseReference mDatabase;
 
+    public static FloatingActionButton fab;
+
     @Override
     public void onStart() {
         super.onStart();
@@ -144,7 +146,7 @@ public class MainActivity extends AppCompatActivity implements AllFragment.OnFra
             getSupportFragmentManager().beginTransaction().add(R.id.fragment_container_main, postingFragment).commit();
         }
     }
-
+  
     private void signInAnonymously(final Bundle savedInstanceState) {
         showProgressDialog();
         mAuth.signInAnonymously()
@@ -189,6 +191,4 @@ public class MainActivity extends AppCompatActivity implements AllFragment.OnFra
     @Override
     public void onFragmentInteraction(Uri uri) {
     }
-
-
 }

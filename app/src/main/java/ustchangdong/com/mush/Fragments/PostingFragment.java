@@ -19,6 +19,7 @@ import android.view.Display;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.View.OnScrollChangeListener;
 import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.Button;
@@ -41,6 +42,7 @@ import ustchangdong.com.mush.Adapters.CommentAdapter;
 import ustchangdong.com.mush.Adapters.CustomAdapter;
 import ustchangdong.com.mush.DataClasses.Post;
 import ustchangdong.com.mush.DataClasses.PostComment;
+import ustchangdong.com.mush.MainActivity;
 import ustchangdong.com.mush.R;
 import ustchangdong.com.mush.Utils.EndlessRecyclerViewScrollListener;
 import ustchangdong.com.mush.Utils.RecyclerViewClickListener;
@@ -112,6 +114,22 @@ public class PostingFragment extends Fragment implements RecyclerViewClickListen
         layoutManager = new LinearLayoutManager(rootView.getContext());
         mRecyclerView.setLayoutManager(layoutManager);
         mRecyclerView.setItemAnimator(new DefaultItemAnimator());
+                // google refer 해
+//        mRecyclerView.setOnScrollChangeListener(new View.OnScrollChangeListener() {
+//            @Override
+//            public void onScrollChange(View view, int i, int i1, int i2, int i3) {
+//
+//            }
+//        });
+                mRecyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
+                    public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
+                        if (dy < 0) {
+                            MainActivity.fab.setVisibility(View.VISIBLE);
+                        } else if (dy > 0) {
+                            MainActivity.fab.setVisibility(View.INVISIBLE);
+                        }
+                    }
+                });
 
         mRecyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
             public void onScrolled(RecyclerView recyclerView, int dx, int dy) {

@@ -50,8 +50,6 @@ public class MainActivity extends AppCompatActivity implements AllFragment.OnFra
     private FirebaseUser currentUser;
     public static DatabaseReference mDatabase;
 
-    public static FloatingActionButton fab;
-
     @Override
     public void onStart() {
         super.onStart();

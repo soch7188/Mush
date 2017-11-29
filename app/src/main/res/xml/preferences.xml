@@ -17,7 +17,7 @@
         <SwitchPreference
             android:key="@string/notificationOnOffKey"
             android:title="@string/notificationOnOffTitle"
-            app:defaultValue="true"/>
+            android:defaultValue="false"/>
         <!--
         <SwitchPreference
             android:key="@string/notification_new_post_key"

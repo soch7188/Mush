@@ -122,8 +122,8 @@ public class CustomAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
         if (postItemHolder.getAdapterPosition() % ITEMS_PER_AD == 0){
 //            postItemHolder.adCardView.setVisibility(View.VISIBLE);
             postItemHolder.adView.setVisibility(View.VISIBLE);
-            AdRequest request = new AdRequest.Builder().addTestDevice("AAF419D21A886806E91141DD6F8717B8").build();
-//            AdRequest request = new AdRequest.Builder().build();
+//            AdRequest request = new AdRequest.Builder().addTestDevice("AAF419D21A886806E91141DD6F8717B8").build();
+            AdRequest request = new AdRequest.Builder().build();
             postItemHolder.adView.loadAd(request);
         } else {
             postItemHolder.adView.setVisibility(View.GONE);

@@ -3,12 +3,15 @@ package ustchangdong.com.mush.Fragments;
 import android.annotation.TargetApi;
 import android.app.Activity;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.graphics.Point;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
+import android.support.design.widget.Snackbar;
 import android.support.v4.app.Fragment;
 import android.support.v4.widget.SwipeRefreshLayout;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.DefaultItemAnimator;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -16,7 +19,6 @@ import android.view.Display;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.view.View.OnScrollChangeListener;
 import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.Button;
@@ -39,18 +41,20 @@ import ustchangdong.com.mush.Adapters.CommentAdapter;
 import ustchangdong.com.mush.Adapters.CustomAdapter;
 import ustchangdong.com.mush.DataClasses.Post;
 import ustchangdong.com.mush.DataClasses.PostComment;
-import ustchangdong.com.mush.MainActivity;
 import ustchangdong.com.mush.R;
 import ustchangdong.com.mush.Utils.EndlessRecyclerViewScrollListener;
 import ustchangdong.com.mush.Utils.RecyclerViewClickListener;
 
 import static android.widget.PopupWindow.INPUT_METHOD_NEEDED;
+import static ustchangdong.com.mush.MainActivity.mAuth;
+import static ustchangdong.com.mush.MainActivity.mDatabase;
 
 public class PostingFragment extends Fragment implements RecyclerViewClickListener {
     private static final String TAG = "PostingsFragment";
     private Logger logger = Logger.getLogger("PostingsFragment");
 
-    private static String POSTING_TYPE_NAME = "posting_posts";
+    private final static String POSTING_POSTS_TYPE_NAME = "posting_posts";
+    private final static String USER_POSTING_TYPE_NAME = "user-posts";
 
     Context mContext;
 
@@ -77,25 +81,10 @@ public class PostingFragment extends Fragment implements RecyclerViewClickListen
     private PopupWindow popWindow;
     private View rootView;
 
+    public FloatingActionButton fab;
+
     public PostingFragment(){
-
     }
-
-
-    /**
-     * Use this factory method to create a new instance of
-     * this fragment using the provided parameters.
-     *
-     * @return A new instance of fragment all.
-     */
-    // TODO: Rename and change types and number of parameters
-//    public PostingFragment newInstance(String fragType) {
-//        PostingFragment fragment = new PostingFragment();
-//        Bundle args = new Bundle();
-//        fragment.setArguments(args);
-//        POSTING_TYPE_NAME = fragType;
-//        return fragment;
-//    }
 
     @Override
     public void onViewClicked(View view, int position) {
@@ -123,24 +112,18 @@ public class PostingFragment extends Fragment implements RecyclerViewClickListen
         layoutManager = new LinearLayoutManager(rootView.getContext());
         mRecyclerView.setLayoutManager(layoutManager);
         mRecyclerView.setItemAnimator(new DefaultItemAnimator());
-                // google refer 해
-//        mRecyclerView.setOnScrollChangeListener(new View.OnScrollChangeListener() {
-//            @Override
-//            public void onScrollChange(View view, int i, int i1, int i2, int i3) {
-//
-//            }
-//        });
-                mRecyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
-                    public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
-                        if (dy < 0) {
-                            MainActivity.fab.setVisibility(View.VISIBLE);
-                        } else if (dy > 0) {
-                            MainActivity.fab.setVisibility(View.INVISIBLE);
-                        }
-                    }
-                });
 
-        postRef = FirebaseDatabase.getInstance().getReference(POSTING_TYPE_NAME);
+        mRecyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
+            public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
+                if (dy < 0) {
+                    fab.setVisibility(View.VISIBLE);
+                } else if (dy > 0) {
+                    fab.setVisibility(View.INVISIBLE);
+                }
+            }
+        });
+
+        postRef = FirebaseDatabase.getInstance().getReference(POSTING_POSTS_TYPE_NAME);
         commentRef = FirebaseDatabase.getInstance().getReference("comment");
         setRecyclerViewAdapter();
         mSwipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
@@ -149,12 +132,15 @@ public class PostingFragment extends Fragment implements RecyclerViewClickListen
                 refreshItems();
             }
         });
+
+        setFloatingActionButton();
+
         return rootView;
     }
 
     public void onShowPopup(View v, final Post post){
         LayoutInflater layoutInflater = (LayoutInflater)v.getContext().getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-        postCommentRef = commentRef.child(POSTING_TYPE_NAME).child(post.getFbdbid());
+        postCommentRef = commentRef.child(POSTING_POSTS_TYPE_NAME).child(post.getFbdbid());
 
         final View inflatedView = layoutInflater.inflate(R.layout.fb_popup_layout, null,false);
         mRecyclerViewComment = inflatedView.findViewById(R.id.rv_comment);
@@ -477,6 +463,87 @@ public class PostingFragment extends Fragment implements RecyclerViewClickListen
 
     void onItemsLoadComplete() {
         mSwipeRefreshLayout.setRefreshing(false);
+    }
+
+    private void setFloatingActionButton(){
+        fab = (FloatingActionButton) rootView.findViewById(R.id.fab_post);
+        fab.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(final View view) {
+                // get prompts.xml view
+                LayoutInflater li = LayoutInflater.from(mContext);
+                View promptsView = li.inflate(R.layout.dialog_add_post, null);
+                AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(mContext);
+
+                // set prompts.xml to alertdialog builder
+                alertDialogBuilder.setView(promptsView);
+
+//                final EditText editTextTitle = promptsView.findViewById(R.id.editTextTitle);
+                final EditText editTextContent = promptsView.findViewById(R.id.editTextContent);
+//                final RadioGroup radioGroupCategory = promptsView.findViewById(R.id.rg_category);
+
+                try {
+                    alertDialogBuilder
+                            .setCancelable(true)
+                            .setPositiveButton("OK",
+                                    new DialogInterface.OnClickListener() {
+                                        public void onClick(DialogInterface dialog, int id) {
+//                                            String title = editTextTitle.getText().toString();
+                                            String content = editTextContent.getText().toString();
+                                            if (!content.isEmpty()){
+//                                                writeNewPost(mAuth.getCurrentUser().getUid(), title, content, radioGroupCategory.getCheckedRadioButtonId());
+                                                writeNewPost(mAuth.getCurrentUser().getUid(), null, content, -1);
+                                                Snackbar.make(rootView.findViewById(R.id.placeSnackBar2), "Post Successfully Added", Snackbar.LENGTH_LONG).setAction("Action", null).show();
+                                            }
+                                        }
+                                    })
+                            .setNegativeButton("Cancel",
+                                    new DialogInterface.OnClickListener() {
+                                        public void onClick(DialogInterface dialog, int id) {
+                                            dialog.cancel();
+                                        }
+                                    })
+
+                            .create()
+                            .show();
+                } catch (Exception e){
+                    e.printStackTrace();
+                }
+            }
+        });
+    }
+
+
+
+    private void writeNewPost(String userId, String title, String content, int radioGroupCategory) {
+        // Create new post at /user-posts/$userid/$postid and at
+        // /posts/$postid simultaneously
+        String key = mDatabase.push().getKey();
+        Post post = new Post(key, userId, title, content, "0"); // Comment is set to 0 for new posts.
+        Map<String, Object> postValues = post.toMap();
+
+        Map<String, Object> childUpdates = new HashMap<>();
+
+        switch(radioGroupCategory) {
+//            case R.id.rb_posting:
+//                childUpdates.put("/" + POSTING_POSTS_TYPE_NAME + "/" + key, postValues);
+//                childUpdates.put("/user-posts/" + userId + "/" + key, postValues);
+//                break;
+//            case R.id.rb_market:
+//                childUpdates.put("/" + POSTING_MARKET_TYPE_NAME + "/" + key, postValues);
+//                childUpdates.put("/user-market/" + userId + "/" + key, postValues);
+//                break;
+//            case R.id.rb_all:
+//                childUpdates.put("/all/" + key, postValues);
+//                childUpdates.put("/user-all/" + userId + "/" + key, postValues);
+//                break;
+            default:
+                childUpdates.put("/" + POSTING_POSTS_TYPE_NAME + "/" + key, postValues);
+                childUpdates.put("/" + USER_POSTING_TYPE_NAME + "/" + userId + "/" + key, postValues);
+                break;
+        }
+
+        mDatabase.updateChildren(childUpdates);
     }
 
     @Override

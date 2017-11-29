@@ -4,28 +4,12 @@
               android:layout_width="fill_parent"
               android:layout_height="fill_parent"
               android:orientation="vertical"
-              android:padding="10dp"
-              android:weightSum="1">
-
-    <!--
-    <EditText
-        android:id="@+id/editTextTitle"
-        android:inputType="text"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:layout_marginLeft="4dp"
-        android:layout_marginRight="4dp"
-        android:layout_marginBottom="4dp"
-        android:hint="Title">
-        <requestFocus/>
-    </EditText>
-    -->
+              android:padding="10dp">
 
     <EditText
         android:id="@+id/editTextContent"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="0dp"
         android:layout_marginBottom="4dp"
         android:layout_marginLeft="4dp"
         android:layout_marginRight="4dp"
@@ -36,30 +20,4 @@
         android:lines="3"
         android:inputType="textMultiLine|textCapSentences">
     </EditText>
-
-    <!--
-    <RadioGroup xmlns:android="http://schemas.android.com/apk/res/android"
-                android:layout_width="fill_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:id="@+id/rg_category">
-        <RadioButton android:id="@+id/rb_posting"
-                     android:layout_width="0dp"
-                     android:layout_height="wrap_content"
-                     android:layout_weight="1"
-                     android:text="Posting"/>
-        <RadioButton android:id="@+id/rb_market"
-                     android:layout_width="0dp"
-                     android:layout_height="wrap_content"
-                     android:layout_weight="1"
-                     android:text="Market"/>
-        <RadioButton android:id="@+id/rb_all"
-                     android:layout_width="0dp"
-                     android:layout_height="wrap_content"
-                     android:layout_weight="1"
-                     android:text="All"
-                    android:checked="true"/>
-    </RadioGroup>
-    -->
-
 </LinearLayout>

@@ -6,28 +6,15 @@
         android:icon="@drawable/ic_letter"
         android:title="@string/title_posting"/>
 
-    <!--
     <item
-        android:id="@+id/navigation_buyandsell"
+        android:id="@+id/navigation_food"
+        android:icon="@drawable/ic_food"
+        android:title="@string/title_food"/>
+
+    <item
+        android:id="@+id/navigation_market"
         android:icon="@drawable/ic_market"
         android:title="@string/title_market"/>
-
-    <item
-        android:id="@+id/navigation_love"
-        android:icon="@drawable/ic_heart_svg"
-        android:title="@string/title_love"/>
-
-    <item
-        android:id="@+id/navigation_study"
-        android:icon="@drawable/ic_study"
-        android:title="@string/title_study"/>
-
-    <item
-        android:id="@+id/navigation_all"
-        android:icon="@drawable/ic_all"
-        android:title="@string/title_all"/>
-
-    -->
 
     <item
         android:id="@+id/navigation_settings"

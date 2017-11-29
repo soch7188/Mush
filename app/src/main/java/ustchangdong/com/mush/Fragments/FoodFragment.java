@@ -2,11 +2,17 @@ package ustchangdong.com.mush.Fragments;
 
 import android.annotation.TargetApi;
 import android.app.Activity;
+import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
+import android.graphics.Bitmap;
 import android.graphics.Point;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.provider.MediaStore;
+import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.Fragment;
@@ -23,14 +29,23 @@ import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.PopupWindow;
+import android.widget.Toast;
 
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.OnProgressListener;
+import com.google.firebase.storage.StorageReference;
+import com.google.firebase.storage.UploadTask;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -38,23 +53,24 @@ import java.util.Map;
 import java.util.logging.Logger;
 
 import ustchangdong.com.mush.Adapters.CommentAdapter;
-import ustchangdong.com.mush.Adapters.CustomAdapter;
-import ustchangdong.com.mush.DataClasses.Post;
+import ustchangdong.com.mush.Adapters.FoodAdapter;
+import ustchangdong.com.mush.DataClasses.FoodPost;
 import ustchangdong.com.mush.DataClasses.PostComment;
 import ustchangdong.com.mush.R;
 import ustchangdong.com.mush.Utils.EndlessRecyclerViewScrollListener;
 import ustchangdong.com.mush.Utils.RecyclerViewClickListener;
 
+import static android.app.Activity.RESULT_OK;
 import static android.widget.PopupWindow.INPUT_METHOD_NEEDED;
 import static ustchangdong.com.mush.MainActivity.mAuth;
 import static ustchangdong.com.mush.MainActivity.mDatabase;
 
-public class MarketFragment extends Fragment implements RecyclerViewClickListener {
-    private static final String TAG = "MarketFragment";
-    private Logger logger = Logger.getLogger("MarketFragment");
+public class FoodFragment extends Fragment implements RecyclerViewClickListener {
+    private static final String TAG = "FoodFragment";
+    private Logger logger = Logger.getLogger("FoodFragment");
 
-    private final static String POSTING_POSTS_TYPE_NAME = "posting_market";
-    private final static String USER_POSTING_TYPE_NAME = "user-market";
+    private final static String POSTING_POSTS_TYPE_NAME = "posting_food";
+    private final static String USER_POSTING_TYPE_NAME = "user-food";
 
     Context mContext;
 
@@ -63,7 +79,7 @@ public class MarketFragment extends Fragment implements RecyclerViewClickListene
     private RecyclerView mRecyclerViewComment;
     private EndlessRecyclerViewScrollListener scrollListenerComment;
 
-    private CustomAdapter mAdapter;
+    private FoodAdapter mAdapter;
     private LinearLayoutManager layoutManager;
     private RecyclerView mRecyclerView;
     private SwipeRefreshLayout mSwipeRefreshLayout;
@@ -82,18 +98,30 @@ public class MarketFragment extends Fragment implements RecyclerViewClickListene
     private View rootView;
 
     public FloatingActionButton fab;
+    ProgressDialog progressDialog;
 
-    public MarketFragment(){
+
+    // Image Upload related
+    private static final int SELECT_PHOTO = 100;
+    Uri selectedImage;
+    FirebaseStorage storage;
+    StorageReference storageRef,imageRef;
+    UploadTask uploadTask;
+    ImageView addPostImageView;
+    private Button choose;
+    private Uri filePath;
+
+    public FoodFragment(){
     }
 
     @Override
     public void onViewClicked(View view, int position) {
-        onShowPopup(rootView, (Post) mRecyclerViewItems.get(position));
+        onShowPopup(rootView, (FoodPost) mRecyclerViewItems.get(position));
     }
 
     @Override
     public void onRowClicked(int position) {
-        onShowPopup(rootView, (Post) mRecyclerViewItems.get(position));
+        onShowPopup(rootView, (FoodPost) mRecyclerViewItems.get(position));
     }
 
     @Override
@@ -104,10 +132,10 @@ public class MarketFragment extends Fragment implements RecyclerViewClickListene
     @TargetApi(Build.VERSION_CODES.M)
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        rootView = inflater.inflate(R.layout.fragment_postings, container, false);
+        rootView = inflater.inflate(R.layout.fragment_food, container, false);
 
-        mSwipeRefreshLayout = rootView.findViewById(R.id.swipeRefreshLayout_posting);
-        mRecyclerView = rootView.findViewById(R.id.rv_posting);
+        mSwipeRefreshLayout = rootView.findViewById(R.id.swipeRefreshLayout_food);
+        mRecyclerView = rootView.findViewById(R.id.rv_food);
         mRecyclerView.setHasFixedSize(true);
         layoutManager = new LinearLayoutManager(rootView.getContext());
         mRecyclerView.setLayoutManager(layoutManager);
@@ -133,12 +161,16 @@ public class MarketFragment extends Fragment implements RecyclerViewClickListene
             }
         });
 
-        setFloatingActionButton();
+        //accessing the firebase storage
+        storage = FirebaseStorage.getInstance();
+        //creates a storage reference
+        storageRef = storage.getReference();
 
+        setFloatingActionButton();
         return rootView;
     }
 
-    public void onShowPopup(View v, final Post post){
+    public void onShowPopup(View v, final FoodPost post){
         LayoutInflater layoutInflater = (LayoutInflater)v.getContext().getSystemService(Context.LAYOUT_INFLATER_SERVICE);
         postCommentRef = commentRef.child(POSTING_POSTS_TYPE_NAME).child(post.getFbdbid());
 
@@ -157,7 +189,6 @@ public class MarketFragment extends Fragment implements RecyclerViewClickListene
             public void onClick(View view) {
                 String commentText = commentCnt.getText().toString();
                 if (!commentText.isEmpty()){
-                    // Create new comment at /comment/$postId/$commentId
                     String key = postCommentRef.push().getKey();
                     PostComment comment = new PostComment(post.getUserid(), commentText, post.getTimestamp());
                     Map<String, Object> commentValues = comment.toMap();
@@ -166,14 +197,6 @@ public class MarketFragment extends Fragment implements RecyclerViewClickListene
                     postCommentRef.updateChildren(childUpdates);
 
                     commentCnt.setText("");
-
-                    int cmtNum = 0;
-                    PostComment lastPostItem;
-                    Double lastTimeStamp = 0.0;
-                    if (!mRecyclerViewItemsComment.isEmpty()){
-                        lastPostItem = (PostComment) mRecyclerViewItemsComment.get(mRecyclerViewItemsComment.size() - 1);
-                        lastTimeStamp = lastPostItem.getTimestamp();
-                    }
                     ValueEventListener commentVel = new ValueEventListener() {
                         @Override
                         public void onDataChange(DataSnapshot dataSnapshot) {
@@ -185,7 +208,6 @@ public class MarketFragment extends Fragment implements RecyclerViewClickListene
                             Map<String, Object> childUpdate = new HashMap<>();
                             childUpdate.put("comment", newNumComment);
                             postRef.child(post.getFbdbid()).updateChildren(childUpdate);
-
                         }
                         @Override
                         public void onCancelled(DatabaseError databaseError) {
@@ -198,60 +220,19 @@ public class MarketFragment extends Fragment implements RecyclerViewClickListene
             }
         });
 
-        // get device size
         Display display = ((Activity)v.getContext()).getWindowManager().getDefaultDisplay();
         final Point size = new Point();
         display.getSize(size);
         int statusBarHeight = (int) (24 * v.getContext().getResources().getDisplayMetrics().density);
         final int mDeviceHeight = size.y - statusBarHeight;
 
-        // fill the data to the list items
         setRecyclerViewAdapterComment();
-
-        // set height depends on the device size
         popWindow = new PopupWindow(inflatedView, size.x, mDeviceHeight, true );
-        // set a background drawable with rounders corners
         popWindow.setBackgroundDrawable(getResources().getDrawable(R.drawable.fb_popup_bg));
-        // make it focusable to show the keyboard to enter in `EditText`
         popWindow.setFocusable(true);
-        // make it outside touchable to dismiss the popup window
         popWindow.setOutsideTouchable(true);
-
         popWindow.setHeight(WindowManager.LayoutParams.WRAP_CONTENT);
         popWindow.setInputMethodMode(INPUT_METHOD_NEEDED);
-
-//        popWindow.setAnimationStyle(-1);
-
-//      Attempt to allow swipe to dismiss feature.
-//        listView.setOnTouchListener(new View.OnTouchListener() {
-//            private int dx = 0;
-//            private int dy = 0;
-//
-//            @Override
-//            public boolean onTouch(View view, MotionEvent event) {
-//
-//                switch (event.getAction()) {
-//                    case MotionEvent.ACTION_DOWN:
-//                        dx = (int) event.getX();
-//                        dy = (int) event.getY();
-//                        break;
-//
-//                    case MotionEvent.ACTION_MOVE:
-//                        int xp = (int) event.getRawX();
-//                        int yp = (int) event.getRawY();
-//                        int sides = (xp - dx);
-//                        int topBot = (yp - dy);
-//                        Log.d("test", "x: " + sides + " y: " + topBot);
-//
-//                        listView.pos
-//
-//                        popWindow.setHeight(mDeviceHeight - topBot);
-//                        break;
-//                }
-//                return true;
-//            }
-//        });
-
         popWindow.setOnDismissListener(new PopupWindow.OnDismissListener() {
             @Override
             public void onDismiss() {
@@ -260,21 +241,16 @@ public class MarketFragment extends Fragment implements RecyclerViewClickListene
             }
         });
 
-        // show the popup at bottom of the screen and set some margin at bottom ie,
         popWindow.showAtLocation(v, Gravity.BOTTOM, 0, 0);
     }
 
     void setRecyclerViewAdapterComment(){
-        // Retain an instance so that you can call `resetState()` for fresh searches
         scrollListenerComment = new EndlessRecyclerViewScrollListener(layoutManagerComment) {
             @Override
             public void onLoadMore(int page, int totalItemsCount, RecyclerView view) {
-                // Triggered only when new mRecyclerViewItems needs to be appended to the list
-                // Add whatever code is needed to append new items to the bottom of the list
                 loadNextDataFromApiComment(totalItemsCount, rootView);
             }
         };
-        // Adds the scroll listener to RecyclerView
         mRecyclerViewComment.addOnScrollListener(scrollListenerComment);
         mAdapterComment = new CommentAdapter(mContext, getCommentData(), this);
         mRecyclerViewComment.setAdapter(mAdapterComment);
@@ -287,13 +263,11 @@ public class MarketFragment extends Fragment implements RecyclerViewClickListene
                 }
 
                 ArrayList<PostComment> temp = new ArrayList<>();
-                for (DataSnapshot ds : dataSnapshot.getChildren())
-                {
+                for (DataSnapshot ds : dataSnapshot.getChildren()){
                     PostComment pc = ds.getValue(PostComment.class);
                     temp.add(pc);
                 }
 
-//                Collections.reverse(temp);    // Comments should show up on bottom.
                 mRecyclerViewItemsComment.addAll(temp);
 
                 if (mAdapterComment != null){
@@ -312,39 +286,25 @@ public class MarketFragment extends Fragment implements RecyclerViewClickListene
     }
 
     private void setRecyclerViewAdapter(){
-        // Retain an instance so that you can call `resetState()` for fresh searches
         scrollListener = new EndlessRecyclerViewScrollListener(layoutManager) {
             @Override
             public void onLoadMore(int page, int totalItemsCount, RecyclerView view) {
-                // Triggered only when new mRecyclerViewItems needs to be appended to the list
-                // Add whatever code is needed to append new items to the bottom of the list
                 loadNextDataFromApi(totalItemsCount);
             }
         };
-        // Adds the scroll listener to RecyclerView
         mRecyclerView.addOnScrollListener(scrollListener);
-        mAdapter = new CustomAdapter(mContext, getData(), this);
+        mAdapter = new FoodAdapter(mContext, getData(), this);
         mRecyclerView.setAdapter(mAdapter);
     }
 
-
-    // Append the next page of mRecyclerViewItems into the adapter
-    // This method probably sends out a network request and appends new mRecyclerViewItems items to your adapter.
     public void loadNextDataFromApi(int offset) {
-        // Send an API request to retrieve appropriate paginated mRecyclerViewItems
-        //  --> Send the request including an offset value (i.e `page`) as a query parameter.
-        //  --> Deserialize and construct new model objects from the API response
-        //  --> Append the new mRecyclerViewItems objects to the existing set of items inside the array of items
-        //  --> Notify the adapter of the new items made with `notifyItemRangeInserted()`
-        logger.info("LoadNext Called at offset: " + offset);
-        Post lastPostItem;
+        FoodPost lastPostItem;
         Double lastTimeStamp = 0.0;
-        lastPostItem = (Post) mRecyclerViewItems.get(mRecyclerViewItems.size() - 1);
+        lastPostItem = (FoodPost) mRecyclerViewItems.get(mRecyclerViewItems.size() - 1);
         lastTimeStamp = lastPostItem.getTimestamp();
         postRef.orderByChild("timestamp").endAt(lastTimeStamp-1).limitToLast(7).addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
-                logger.info("Before Fetch dataset.size(): " + mRecyclerViewItems.size());
                 fetchData(dataSnapshot);
                 mAdapter.notifyDataSetChanged();
             }
@@ -356,7 +316,6 @@ public class MarketFragment extends Fragment implements RecyclerViewClickListene
     }
 
     public void loadNextDataFromApiComment(int offset, final View rootView) {
-        logger.info("LoadNext Called at offset: " + offset);
         PostComment lastPostItem;
         Double lastTimeStamp = 0.0;
         lastPostItem = (PostComment) mRecyclerViewItemsComment.get(0);  // Get latest at bottom currently shown.
@@ -364,13 +323,11 @@ public class MarketFragment extends Fragment implements RecyclerViewClickListene
         postCommentRef.orderByChild("timestamp").endAt(lastTimeStamp-1).limitToFirst(7).addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
-                logger.info("Before Fetch dataset.size(): " + mRecyclerViewItemsComment.size());
                 ArrayList<PostComment> temp = new ArrayList<>();
                 for (DataSnapshot ds : dataSnapshot.getChildren()) {
                     PostComment pc = ds.getValue(PostComment.class);
                     temp.add(pc);
                 }
-//                Collections.reverse(temp);
                 mRecyclerViewItemsComment.addAll(temp);
                 mAdapterComment.notifyDataSetChanged();
             }
@@ -411,8 +368,7 @@ public class MarketFragment extends Fragment implements RecyclerViewClickListene
                 }
 
                 ArrayList<PostComment> temp = new ArrayList<>();
-                for (DataSnapshot ds : dataSnapshot.getChildren())
-                {
+                for (DataSnapshot ds : dataSnapshot.getChildren()){
                     PostComment pc = ds.getValue(PostComment.class);
                     temp.add(pc);
                 }
@@ -434,17 +390,14 @@ public class MarketFragment extends Fragment implements RecyclerViewClickListene
     }
 
     private void fetchData(DataSnapshot dataSnapshot) {
-        logger.info("fetchData called.");
-        ArrayList<Post> temp = new ArrayList<>();
+        ArrayList<FoodPost> temp = new ArrayList<>();
         for (DataSnapshot ds : dataSnapshot.getChildren())
         {
-            Post bk = ds.getValue(Post.class);
+            FoodPost bk = ds.getValue(FoodPost.class);
             temp.add(bk);
         }
         Collections.reverse(temp);
         mRecyclerViewItems.addAll(temp);
-        logger.info("After fetchData - mRecyclerViewItems.size(): " + mRecyclerViewItems.size());
-
     }
 
     void refreshItems() {
@@ -465,22 +418,48 @@ public class MarketFragment extends Fragment implements RecyclerViewClickListene
         mSwipeRefreshLayout.setRefreshing(false);
     }
 
+    boolean imageUploaded = false;
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == SELECT_PHOTO && resultCode == RESULT_OK && data != null && data.getData() != null) {
+            filePath = data.getData();
+//            Picasso.with(mContext).load("file://"+filePath).into(addPostImageView);
+            try {
+                Bitmap bitmap = MediaStore.Images.Media.getBitmap(mContext.getContentResolver(), filePath);
+                addPostImageView.setImageBitmap(bitmap);
+                imageUploaded = true;
+            } catch (IOException e){
+                e.printStackTrace();
+            }
+        }
+    }
+
     private void setFloatingActionButton(){
-        fab = (FloatingActionButton) rootView.findViewById(R.id.fab_post);
+        fab = rootView.findViewById(R.id.fab_food);
         fab.setOnClickListener(new View.OnClickListener() {
+
             @Override
             public void onClick(final View view) {
-                // get prompts.xml view
                 LayoutInflater li = LayoutInflater.from(mContext);
-                View promptsView = li.inflate(R.layout.dialog_add_post, null);
+                View promptsView = li.inflate(R.layout.dialog_add_food_post, null);
                 AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(mContext);
 
-                // set prompts.xml to alertdialog builder
                 alertDialogBuilder.setView(promptsView);
+                final EditText foodEditTextContent = promptsView.findViewById(R.id.foodEditTextContent);
+                addPostImageView = (ImageView) promptsView.findViewById(R.id.addPostFoodImageView);
 
-//                final EditText editTextTitle = promptsView.findViewById(R.id.editTextTitle);
-                final EditText editTextContent = promptsView.findViewById(R.id.editTextContent);
-//                final RadioGroup radioGroupCategory = promptsView.findViewById(R.id.rg_category);
+                choose = (Button)promptsView.findViewById(R.id.chooseImage);
+                choose.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        Intent intent = new Intent();
+                        intent.setType("image/*");
+                        intent.setAction(Intent.ACTION_GET_CONTENT);
+                        startActivityForResult(Intent.createChooser(intent, "Select Picture"), SELECT_PHOTO);
+                    }
+                });
 
                 try {
                     alertDialogBuilder
@@ -488,12 +467,11 @@ public class MarketFragment extends Fragment implements RecyclerViewClickListene
                             .setPositiveButton("OK",
                                     new DialogInterface.OnClickListener() {
                                         public void onClick(DialogInterface dialog, int id) {
-//                                            String title = editTextTitle.getText().toString();
-                                            String content = editTextContent.getText().toString();
-                                            if (!content.isEmpty()){
-//                                                writeNewPost(mAuth.getCurrentUser().getUid(), title, content, radioGroupCategory.getCheckedRadioButtonId());
-                                                writeNewPost(mAuth.getCurrentUser().getUid(), null, content, -1);
+                                            String content = foodEditTextContent.getText().toString();
+                                            if (!content.isEmpty() || !addPostImageView.isActivated()){
+                                                writeNewPost(mAuth.getCurrentUser().getUid(), null, content, imageUploaded);
                                                 Snackbar.make(rootView.findViewById(R.id.placeSnackBar2), "Post Successfully Added", Snackbar.LENGTH_LONG).setAction("Action", null).show();
+                                                imageUploaded = false;
                                             }
                                         }
                                     })
@@ -513,37 +491,53 @@ public class MarketFragment extends Fragment implements RecyclerViewClickListene
         });
     }
 
-
-
-    private void writeNewPost(String userId, String title, String content, int radioGroupCategory) {
-        // Create new post at /user-posts/$userid/$postid and at
-        // /posts/$postid simultaneously
+    private void writeNewPost(String userId, String title, String content, boolean imgUploaded) {
         String key = mDatabase.push().getKey();
-        Post post = new Post(key, userId, title, content, "0"); // Comment is set to 0 for new posts.
+        FoodPost post = new FoodPost(key, userId, title, content, "0", imgUploaded); // Comment is set to 0 for new posts.
         Map<String, Object> postValues = post.toMap();
-
         Map<String, Object> childUpdates = new HashMap<>();
+        childUpdates.put("/" + POSTING_POSTS_TYPE_NAME + "/" + key, postValues);
+        childUpdates.put("/" + USER_POSTING_TYPE_NAME + "/" + userId + "/" + key, postValues);
 
-        switch(radioGroupCategory) {
-//            case R.id.rb_posting:
-//                childUpdates.put("/" + POSTING_POSTS_TYPE_NAME + "/" + key, postValues);
-//                childUpdates.put("/user-posts/" + userId + "/" + key, postValues);
-//                break;
-//            case R.id.rb_market:
-//                childUpdates.put("/" + POSTING_MARKET_TYPE_NAME + "/" + key, postValues);
-//                childUpdates.put("/user-market/" + userId + "/" + key, postValues);
-//                break;
-//            case R.id.rb_all:
-//                childUpdates.put("/all/" + key, postValues);
-//                childUpdates.put("/user-all/" + userId + "/" + key, postValues);
-//                break;
-            default:
-                childUpdates.put("/" + POSTING_POSTS_TYPE_NAME + "/" + key, postValues);
-                childUpdates.put("/" + USER_POSTING_TYPE_NAME + "/" + userId + "/" + key, postValues);
-                break;
+        final Map<String, Object> updates = childUpdates;
+        if(filePath != null){
+            final ProgressDialog progressDialog = new ProgressDialog(getContext());
+            progressDialog.setTitle("Uploading");
+            progressDialog.show();
+
+            logger.info("path: " + "foodPictures/" + key + ".jpg");
+            StorageReference picsRef = storageRef.child("foodPictures/" + key + ".jpg");
+
+            picsRef.putFile(filePath)
+                    .addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
+                        @Override
+                        public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
+                            progressDialog.dismiss();
+                            Toast.makeText(getContext(),"Successfully posted image",Toast.LENGTH_SHORT).show();
+                            mDatabase.updateChildren(updates);
+                        }
+                    })
+                    .addOnFailureListener(new OnFailureListener() {
+                        @Override
+                        public void onFailure(@NonNull Exception e) {
+                            progressDialog.dismiss();
+                            Toast.makeText(getContext(),"Failed to upload image",Toast.LENGTH_SHORT).show();
+                        }
+                    })
+                    .addOnProgressListener(new OnProgressListener<UploadTask.TaskSnapshot>() {
+                        @Override
+                        public void onProgress(UploadTask.TaskSnapshot taskSnapshot) {
+                            //calculating progress percentage
+                            double progress = (100.0 * taskSnapshot.getBytesTransferred()) / taskSnapshot.getTotalByteCount();
+
+                            //displaying percentage in progress dialog
+                            progressDialog.setMessage("Uploaded " + ((int) progress) + "%...");
+                        }
+                    });
+
+        } else {
+            mDatabase.updateChildren(childUpdates);
         }
-
-        mDatabase.updateChildren(childUpdates);
     }
 
     @Override

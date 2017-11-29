@@ -19,7 +19,6 @@ import android.view.Display;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.view.View.OnScrollChangeListener;
 import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.Button;
@@ -42,7 +41,6 @@ import ustchangdong.com.mush.Adapters.CommentAdapter;
 import ustchangdong.com.mush.Adapters.CustomAdapter;
 import ustchangdong.com.mush.DataClasses.Post;
 import ustchangdong.com.mush.DataClasses.PostComment;
-import ustchangdong.com.mush.MainActivity;
 import ustchangdong.com.mush.R;
 import ustchangdong.com.mush.Utils.EndlessRecyclerViewScrollListener;
 import ustchangdong.com.mush.Utils.RecyclerViewClickListener;
@@ -108,29 +106,31 @@ public class PostingFragment extends Fragment implements RecyclerViewClickListen
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         rootView = inflater.inflate(R.layout.fragment_postings, container, false);
 
+        setSwipeRefreshLayout();
+        setRecyclerView();
+        setFirebaseDBReferences();
+        setRecyclerViewAdapter();
+        setFloatingActionButton();
+
+        return rootView;
+    }
+
+    private void setSwipeRefreshLayout(){
         mSwipeRefreshLayout = rootView.findViewById(R.id.swipeRefreshLayout_posting);
+        mSwipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+            @Override
+            public void onRefresh() {
+                refreshItems();
+            }
+        });
+    }
+
+    private void setRecyclerView(){
         mRecyclerView = rootView.findViewById(R.id.rv_posting);
         mRecyclerView.setHasFixedSize(true);
         layoutManager = new LinearLayoutManager(rootView.getContext());
         mRecyclerView.setLayoutManager(layoutManager);
         mRecyclerView.setItemAnimator(new DefaultItemAnimator());
-                // google refer 해
-//        mRecyclerView.setOnScrollChangeListener(new View.OnScrollChangeListener() {
-//            @Override
-//            public void onScrollChange(View view, int i, int i1, int i2, int i3) {
-//
-//            }
-//        });
-                mRecyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
-                    public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
-                        if (dy < 0) {
-                            MainActivity.fab.setVisibility(View.VISIBLE);
-                        } else if (dy > 0) {
-                            MainActivity.fab.setVisibility(View.INVISIBLE);
-                        }
-                    }
-                });
-
         mRecyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
             public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
                 if (dy < 0) {
@@ -140,20 +140,98 @@ public class PostingFragment extends Fragment implements RecyclerViewClickListen
                 }
             }
         });
+    }
 
+    private void setFirebaseDBReferences(){
         postRef = FirebaseDatabase.getInstance().getReference(POSTING_POSTS_TYPE_NAME);
         commentRef = FirebaseDatabase.getInstance().getReference("comment");
-        setRecyclerViewAdapter();
-        mSwipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+    }
+
+    private void setRecyclerViewAdapter(){
+        // Retain an instance so that you can call `resetState()` for fresh searches
+        scrollListener = new EndlessRecyclerViewScrollListener(layoutManager) {
             @Override
-            public void onRefresh() {
-                refreshItems();
+            public void onLoadMore(int page, int totalItemsCount, RecyclerView view) {
+                // Triggered only when new mRecyclerViewItems needs to be appended to the list
+                // Add whatever code is needed to append new items to the bottom of the list
+                loadNextDataFromApi(totalItemsCount);
+            }
+        };
+        // Adds the scroll listener to RecyclerView
+        mRecyclerView.addOnScrollListener(scrollListener);
+        mAdapter = new CustomAdapter(mContext, getData(), this);
+        mRecyclerView.setAdapter(mAdapter);
+    }
+
+    private ArrayList<Object> getData(){
+        ValueEventListener vel = new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                if (!mRecyclerViewItems.isEmpty()) {
+                    mRecyclerViewItems.clear();
+                }
+                fetchData(dataSnapshot);
+                if (mAdapter != null) {
+                    mAdapter.notifyDataSetChanged();
+                }
+                scrollListener.resetState();
+            }
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+            }
+        };
+        postRef.limitToLast(7).addValueEventListener(vel);
+        return mRecyclerViewItems;
+    }
+
+    // Append the next page of mRecyclerViewItems into the adapter
+    // This method probably sends out a network request and appends new mRecyclerViewItems items to your adapter.
+    public void loadNextDataFromApi(int offset) {
+        // Send an API request to retrieve appropriate paginated mRecyclerViewItems
+        //  --> Send the request including an offset value (i.e `page`) as a query parameter.
+        //  --> Deserialize and construct new model objects from the API response
+        //  --> Append the new mRecyclerViewItems objects to the existing set of items inside the array of items
+        //  --> Notify the adapter of the new items made with `notifyItemRangeInserted()`
+        logger.info("LoadNext Called at offset: " + offset);
+        Post lastPostItem;
+        Double lastTimeStamp = 0.0;
+        lastPostItem = (Post) mRecyclerViewItems.get(mRecyclerViewItems.size() - 1);
+        lastTimeStamp = lastPostItem.getTimestamp();
+        postRef.orderByChild("timestamp").endAt(lastTimeStamp-1).limitToLast(7).addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                fetchData(dataSnapshot);
+                mAdapter.notifyDataSetChanged();
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
             }
         });
+    }
 
-        setFloatingActionButton();
+    private void fetchData(DataSnapshot dataSnapshot) {
+        ArrayList<Post> temp = new ArrayList<>();
+        for (DataSnapshot ds : dataSnapshot.getChildren()) {
+            Post bk = ds.getValue(Post.class);
+            temp.add(bk);
+        }
+        Collections.reverse(temp);
+        mRecyclerViewItems.addAll(temp);
+    }
 
-        return rootView;
+    void refreshItems() {
+        ArrayList<Object> temp = new ArrayList<>();
+        temp.addAll(mRecyclerViewItems);
+        try {
+            mRecyclerViewItems.clear();
+            getData();
+            scrollListener.resetState();
+        } catch (Exception e) {
+            e.printStackTrace();
+            mRecyclerViewItems.addAll(temp);
+        }
+        onItemsLoadComplete();
     }
 
     public void onShowPopup(View v, final Post post){
@@ -185,7 +263,6 @@ public class PostingFragment extends Fragment implements RecyclerViewClickListen
 
                     commentCnt.setText("");
 
-                    int cmtNum = 0;
                     PostComment lastPostItem;
                     Double lastTimeStamp = 0.0;
                     if (!mRecyclerViewItemsComment.isEmpty()){
@@ -237,38 +314,6 @@ public class PostingFragment extends Fragment implements RecyclerViewClickListen
 
         popWindow.setHeight(WindowManager.LayoutParams.WRAP_CONTENT);
         popWindow.setInputMethodMode(INPUT_METHOD_NEEDED);
-
-//        popWindow.setAnimationStyle(-1);
-
-//      Attempt to allow swipe to dismiss feature.
-//        listView.setOnTouchListener(new View.OnTouchListener() {
-//            private int dx = 0;
-//            private int dy = 0;
-//
-//            @Override
-//            public boolean onTouch(View view, MotionEvent event) {
-//
-//                switch (event.getAction()) {
-//                    case MotionEvent.ACTION_DOWN:
-//                        dx = (int) event.getX();
-//                        dy = (int) event.getY();
-//                        break;
-//
-//                    case MotionEvent.ACTION_MOVE:
-//                        int xp = (int) event.getRawX();
-//                        int yp = (int) event.getRawY();
-//                        int sides = (xp - dx);
-//                        int topBot = (yp - dy);
-//                        Log.d("test", "x: " + sides + " y: " + topBot);
-//
-//                        listView.pos
-//
-//                        popWindow.setHeight(mDeviceHeight - topBot);
-//                        break;
-//                }
-//                return true;
-//            }
-//        });
 
         popWindow.setOnDismissListener(new PopupWindow.OnDismissListener() {
             @Override
@@ -329,50 +374,6 @@ public class PostingFragment extends Fragment implements RecyclerViewClickListen
         mRecyclerViewComment.setAdapter(mAdapterComment);
     }
 
-    private void setRecyclerViewAdapter(){
-        // Retain an instance so that you can call `resetState()` for fresh searches
-        scrollListener = new EndlessRecyclerViewScrollListener(layoutManager) {
-            @Override
-            public void onLoadMore(int page, int totalItemsCount, RecyclerView view) {
-                // Triggered only when new mRecyclerViewItems needs to be appended to the list
-                // Add whatever code is needed to append new items to the bottom of the list
-                loadNextDataFromApi(totalItemsCount);
-            }
-        };
-        // Adds the scroll listener to RecyclerView
-        mRecyclerView.addOnScrollListener(scrollListener);
-        mAdapter = new CustomAdapter(mContext, getData(), this);
-        mRecyclerView.setAdapter(mAdapter);
-    }
-
-
-    // Append the next page of mRecyclerViewItems into the adapter
-    // This method probably sends out a network request and appends new mRecyclerViewItems items to your adapter.
-    public void loadNextDataFromApi(int offset) {
-        // Send an API request to retrieve appropriate paginated mRecyclerViewItems
-        //  --> Send the request including an offset value (i.e `page`) as a query parameter.
-        //  --> Deserialize and construct new model objects from the API response
-        //  --> Append the new mRecyclerViewItems objects to the existing set of items inside the array of items
-        //  --> Notify the adapter of the new items made with `notifyItemRangeInserted()`
-        logger.info("LoadNext Called at offset: " + offset);
-        Post lastPostItem;
-        Double lastTimeStamp = 0.0;
-        lastPostItem = (Post) mRecyclerViewItems.get(mRecyclerViewItems.size() - 1);
-        lastTimeStamp = lastPostItem.getTimestamp();
-        postRef.orderByChild("timestamp").endAt(lastTimeStamp-1).limitToLast(7).addListenerForSingleValueEvent(new ValueEventListener() {
-            @Override
-            public void onDataChange(DataSnapshot dataSnapshot) {
-                logger.info("Before Fetch dataset.size(): " + mRecyclerViewItems.size());
-                fetchData(dataSnapshot);
-                mAdapter.notifyDataSetChanged();
-            }
-
-            @Override
-            public void onCancelled(DatabaseError databaseError) {
-            }
-        });
-    }
-
     public void loadNextDataFromApiComment(int offset, final View rootView) {
         logger.info("LoadNext Called at offset: " + offset);
         PostComment lastPostItem;
@@ -397,27 +398,6 @@ public class PostingFragment extends Fragment implements RecyclerViewClickListen
             public void onCancelled(DatabaseError databaseError) {
             }
         });
-    }
-
-    private ArrayList<Object> getData(){
-        ValueEventListener vel = new ValueEventListener() {
-            @Override
-            public void onDataChange(DataSnapshot dataSnapshot) {
-                if (!mRecyclerViewItems.isEmpty()) {
-                    mRecyclerViewItems.clear();
-                }
-                fetchData(dataSnapshot);
-                if (mAdapter != null) {
-                    mAdapter.notifyDataSetChanged();
-                }
-                scrollListener.resetState();
-            }
-            @Override
-            public void onCancelled(DatabaseError databaseError) {
-            }
-        };
-        postRef.limitToLast(7).addValueEventListener(vel);
-        return mRecyclerViewItems;
     }
 
     private ArrayList<PostComment> getCommentData(){
@@ -451,34 +431,6 @@ public class PostingFragment extends Fragment implements RecyclerViewClickListen
         return mRecyclerViewItemsComment;
     }
 
-    private void fetchData(DataSnapshot dataSnapshot) {
-        logger.info("fetchData called.");
-        ArrayList<Post> temp = new ArrayList<>();
-        for (DataSnapshot ds : dataSnapshot.getChildren())
-        {
-            Post bk = ds.getValue(Post.class);
-            temp.add(bk);
-        }
-        Collections.reverse(temp);
-        mRecyclerViewItems.addAll(temp);
-        logger.info("After fetchData - mRecyclerViewItems.size(): " + mRecyclerViewItems.size());
-
-    }
-
-    void refreshItems() {
-        ArrayList<Object> temp = new ArrayList<>();
-        temp.addAll(mRecyclerViewItems);
-        try {
-            mRecyclerViewItems.clear();
-            getData();
-            scrollListener.resetState();
-        } catch (Exception e) {
-            e.printStackTrace();
-            mRecyclerViewItems.addAll(temp);
-        }
-        onItemsLoadComplete();
-    }
-
     void onItemsLoadComplete() {
         mSwipeRefreshLayout.setRefreshing(false);
     }
@@ -488,17 +440,12 @@ public class PostingFragment extends Fragment implements RecyclerViewClickListen
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(final View view) {
-                // get prompts.xml view
                 LayoutInflater li = LayoutInflater.from(mContext);
                 View promptsView = li.inflate(R.layout.dialog_add_post, null);
                 AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(mContext);
-
-                // set prompts.xml to alertdialog builder
                 alertDialogBuilder.setView(promptsView);
 
-//                final EditText editTextTitle = promptsView.findViewById(R.id.editTextTitle);
                 final EditText editTextContent = promptsView.findViewById(R.id.editTextContent);
-//                final RadioGroup radioGroupCategory = promptsView.findViewById(R.id.rg_category);
 
                 try {
                     alertDialogBuilder
@@ -506,11 +453,9 @@ public class PostingFragment extends Fragment implements RecyclerViewClickListen
                             .setPositiveButton("OK",
                                     new DialogInterface.OnClickListener() {
                                         public void onClick(DialogInterface dialog, int id) {
-//                                            String title = editTextTitle.getText().toString();
                                             String content = editTextContent.getText().toString();
                                             if (!content.isEmpty()){
-//                                                writeNewPost(mAuth.getCurrentUser().getUid(), title, content, radioGroupCategory.getCheckedRadioButtonId());
-                                                writeNewPost(mAuth.getCurrentUser().getUid(), null, content, -1);
+                                                writeNewPost(mAuth.getCurrentUser().getUid(), null, content);
                                                 Snackbar.make(rootView.findViewById(R.id.placeSnackBar2), "Post Successfully Added", Snackbar.LENGTH_LONG).setAction("Action", null).show();
                                             }
                                         }
@@ -531,35 +476,16 @@ public class PostingFragment extends Fragment implements RecyclerViewClickListen
         });
     }
 
-
-
-    private void writeNewPost(String userId, String title, String content, int radioGroupCategory) {
+    private void writeNewPost(String userId, String title, String content) {
         // Create new post at /user-posts/$userid/$postid and at
         // /posts/$postid simultaneously
         String key = mDatabase.push().getKey();
         Post post = new Post(key, userId, title, content, "0"); // Comment is set to 0 for new posts.
         Map<String, Object> postValues = post.toMap();
-
         Map<String, Object> childUpdates = new HashMap<>();
 
-        switch(radioGroupCategory) {
-//            case R.id.rb_posting:
-//                childUpdates.put("/" + POSTING_POSTS_TYPE_NAME + "/" + key, postValues);
-//                childUpdates.put("/user-posts/" + userId + "/" + key, postValues);
-//                break;
-//            case R.id.rb_market:
-//                childUpdates.put("/" + POSTING_MARKET_TYPE_NAME + "/" + key, postValues);
-//                childUpdates.put("/user-market/" + userId + "/" + key, postValues);
-//                break;
-//            case R.id.rb_all:
-//                childUpdates.put("/all/" + key, postValues);
-//                childUpdates.put("/user-all/" + userId + "/" + key, postValues);
-//                break;
-            default:
-                childUpdates.put("/" + POSTING_POSTS_TYPE_NAME + "/" + key, postValues);
-                childUpdates.put("/" + USER_POSTING_TYPE_NAME + "/" + userId + "/" + key, postValues);
-                break;
-        }
+        childUpdates.put("/" + POSTING_POSTS_TYPE_NAME + "/" + key, postValues);
+        childUpdates.put("/" + USER_POSTING_TYPE_NAME + "/" + userId + "/" + key, postValues);
 
         mDatabase.updateChildren(childUpdates);
     }

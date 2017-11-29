@@ -103,10 +103,8 @@ public class FoodFragment extends Fragment implements RecyclerViewClickListener 
 
     // Image Upload related
     private static final int SELECT_PHOTO = 100;
-    Uri selectedImage;
     FirebaseStorage storage;
-    StorageReference storageRef,imageRef;
-    UploadTask uploadTask;
+    StorageReference storageRef;
     ImageView addPostImageView;
     private Button choose;
     private Uri filePath;
@@ -161,9 +159,7 @@ public class FoodFragment extends Fragment implements RecyclerViewClickListener 
             }
         });
 
-        //accessing the firebase storage
         storage = FirebaseStorage.getInstance();
-        //creates a storage reference
         storageRef = storage.getReference();
 
         setFloatingActionButton();
@@ -527,10 +523,7 @@ public class FoodFragment extends Fragment implements RecyclerViewClickListener 
                     .addOnProgressListener(new OnProgressListener<UploadTask.TaskSnapshot>() {
                         @Override
                         public void onProgress(UploadTask.TaskSnapshot taskSnapshot) {
-                            //calculating progress percentage
                             double progress = (100.0 * taskSnapshot.getBytesTransferred()) / taskSnapshot.getTotalByteCount();
-
-                            //displaying percentage in progress dialog
                             progressDialog.setMessage("Uploaded " + ((int) progress) + "%...");
                         }
                     });

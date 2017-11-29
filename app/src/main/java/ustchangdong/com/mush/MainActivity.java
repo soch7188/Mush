@@ -3,7 +3,6 @@ package ustchangdong.com.mush;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.net.Uri;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
@@ -25,13 +24,12 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.messaging.FirebaseMessaging;
 
-import ustchangdong.com.mush.Fragments.AllFragment;
 import ustchangdong.com.mush.Fragments.FoodFragment;
 import ustchangdong.com.mush.Fragments.MarketFragment;
 import ustchangdong.com.mush.Fragments.PostingFragment;
 import ustchangdong.com.mush.Fragments.SettingsFragment;
 
-public class MainActivity extends AppCompatActivity implements AllFragment.OnFragmentInteractionListener {
+public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
     final Context context = this;
 
@@ -183,10 +181,5 @@ public class MainActivity extends AppCompatActivity implements AllFragment.OnFra
         if (mProgressDialog != null && mProgressDialog.isShowing()) {
             mProgressDialog.dismiss();
         }
-    }
-
-
-    @Override
-    public void onFragmentInteraction(Uri uri) {
     }
 }
